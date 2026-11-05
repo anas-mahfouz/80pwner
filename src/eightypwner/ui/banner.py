@@ -68,13 +68,13 @@ def paint_banner(
 
     painter.save()
     painter.setRenderHint(QPainter.RenderHint.Antialiasing, True)
-    center = rect.center() - QPointF(
-        bounds.width() * scale / 2, bounds.height() * scale * 0.40
-    )
-    painter.translate(center)
+    # Center the glyph bounds (which span above/below the text baseline),
+    # not the baseline itself — otherwise tall glyphs get clipped.
+    painter.translate(rect.center())
     painter.scale(scale, scale)
-    painter.fillPath(left_path, QColor(tokens["accent"]))         # THE80
-    painter.fillPath(right_path, QColor(tokens["accent_hover"]))  # -PWNER
+    painter.translate(-bounds.center().x(), -bounds.center().y())
+    painter.fillPath(left_path, QColor(tokens["accent"]))          # THE80
+    painter.fillPath(right_path, QColor(tokens["accent_hover"]))   # -PWNER
     painter.restore()
 
 
