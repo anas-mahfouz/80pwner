@@ -77,10 +77,9 @@ def main(argv: list[str] | None = None) -> int:
     window.show()
 
     if not args.no_splash:
-        from eightypwner.ui.splash import show_splash
+        from eightypwner.ui.splash import finish_splash, show_splash
 
-        splash = show_splash()
-        splash.finish(window)
+        finish_splash(show_splash(), window)
     logging.getLogger(__name__).info("80PWNER ready")
 
     code = app.exec()
