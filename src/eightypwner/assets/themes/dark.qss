@@ -1,0 +1,108 @@
+/* 80PWNER — dark theme (by Anas Mahfouz (The80)) — token-substituted QSS */
+
+QMainWindow, QDialog {
+    background: ${bg};
+    color: ${fg};
+}
+
+QWidget { color: ${fg}; }
+
+/* ---- menus / toolbar ---------------------------------------------------- */
+QMenuBar {
+    background: ${panel};
+    color: ${fg};
+    border-bottom: 1px solid ${border};
+}
+QMenuBar::item:selected { background: ${panel_alt}; }
+QMenu {
+    background: ${panel};
+    color: ${fg};
+    border: 1px solid ${border};
+    padding: 4px;
+}
+QMenu::item:selected { background: ${accent}; color: ${on_accent}; }
+QMenu::separator { height: 1px; background: ${border}; margin: 4px 8px; }
+
+QToolBar {
+    background: ${panel};
+    border-bottom: 1px solid ${border};
+    padding: 3px;
+    spacing: 6px;
+}
+QToolBar::separator { width: 1px; background: ${border}; margin: 4px; }
+
+/* ---- docks --------------------------------------------------------------- */
+QDockWidget {
+    titlebar-close-icon: none;
+    titlebar-normal-icon: none;
+    color: ${fg};
+}
+QDockWidget::title {
+    background: ${panel_alt};
+    border-bottom: 1px solid ${accent_dim};
+    padding: 5px 10px;
+}
+
+/* ---- status bar ---------------------------------------------------------- */
+QStatusBar {
+    background: ${panel};
+    color: ${fg};
+    border-top: 1px solid ${border};
+}
+QStatusBar QLabel { padding: 0 6px; }
+
+/* ---- buttons / inputs ---------------------------------------------------- */
+QPushButton {
+    background: ${panel_alt};
+    color: ${fg};
+    border: 1px solid ${border};
+    border-radius: 4px;
+    padding: 4px 12px;
+}
+QPushButton:hover { border-color: ${accent}; color: ${accent}; }
+QPushButton:pressed, QPushButton:checked { background: ${accent}; color: ${on_accent}; }
+QPushButton:disabled { color: ${dim}; border-color: ${border}; }
+
+QLineEdit, QPlainTextEdit, QTextEdit, QSpinBox, QComboBox {
+    background: ${panel_alt};
+    color: ${fg};
+    border: 1px solid ${border};
+    border-radius: 4px;
+    padding: 3px;
+    selection-background-color: ${accent};
+    selection-color: ${on_accent};
+}
+QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus { border-color: ${accent}; }
+
+QScrollBar:vertical { background: ${panel}; width: 10px; }
+QScrollBar::handle:vertical { background: ${border}; border-radius: 4px; min-height: 24px; }
+QScrollBar::handle:vertical:hover { background: ${accent_dim}; }
+QScrollBar:horizontal { background: ${panel}; height: 10px; }
+QScrollBar::handle:horizontal { background: ${border}; border-radius: 4px; min-width: 24px; }
+QScrollBar::add-line, QScrollBar::sub-line { height: 0; width: 0; }
+
+/* ---- labels / panels ----------------------------------------------------- */
+QLabel { color: ${fg}; }
+QLabel[role="brandAscii"] {
+    color: ${accent};
+    font-size: 10pt;
+    background: transparent;
+}
+QLabel[role="brandFooter"] {
+    color: ${accent};
+    padding: 0 8px;
+}
+QLabel[role="brandFooter"]:hover { color: ${fg}; }
+
+QPanel, QPlainTextEdit, QTextEdit { background: ${panel_alt}; }
+
+/* monospace content widgets get the configured font at runtime */
+QPlainTextEdit, QTextEdit { font-family: $MONO; }
+
+/* Tool tips */
+QToolTip {
+    background: ${panel_alt};
+    color: ${fg};
+    border: 1px solid ${accent_dim};
+    padding: 3px;
+}
