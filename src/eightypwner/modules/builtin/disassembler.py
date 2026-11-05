@@ -52,6 +52,11 @@ from eightypwner.core.event_bus import (
 )
 from eightypwner.engines.disassembler import Disassembler, ReadError
 from eightypwner.engines.functions import FunctionFinder, filter_functions
+from eightypwner.engines.gdb_mi import (
+    T_BP_TOGGLE_REQUEST,
+    T_BP_UPDATED,
+    T_STOPPED,
+)
 from eightypwner.modules.interface import Plugin
 from eightypwner.ui.fonts import resolve_monospace
 
@@ -102,6 +107,9 @@ class DisassemblerPlugin(Plugin):
         self._jump_edit.setMaximumWidth(240)
         self._jump_edit.returnPressed.connect(self._jump_entered)
         self._gshortcut = QShortcut(QKeySequence("Ctrl+G"), self._jump_edit)
+        # F9 toggles a breakpoint at the row under the disassembly cursor
+        self._f9shortcut = QShortcut(QKeySequence("F9"), self._panel)
+        self._f9shortcut.activated.connect(self._f9_toggle)
 
         self._att_check = QCheckBox("AT&T")
         self._att_check.setToolTip("AT&T syntax (x86 only) — reload current view")
@@ -197,6 +205,9 @@ class DisassemblerPlugin(Plugin):
         self._history_pos = -1
         self._pending_view = 0  # request id: ignore stale worker results
         self._lock = threading.Lock()
+        # live-debugger sync (Step 4): PC marker + breakpoint marks
+        self._pc_address: int | None = None
+        self._breakpoint_addrs: set[int] = set()
         return panel
 
     def _tokens(self) -> dict[str, str]:
@@ -249,6 +260,66 @@ class DisassemblerPlugin(Plugin):
             self._on_index_ready(payload)
         elif topic == DISASSEMBLY_READY and isinstance(payload, dict):
             self._on_disassembly(payload)
+        elif topic == T_STOPPED and isinstance(payload, dict):
+            self._on_debugger_pc(payload.get("pc"))
+        elif topic == T_BP_UPDATED and isinstance(payload, dict):
+            self._on_breakpoints(payload)
+
+    # -------------------------------------------------------- debugger sync
+    def _on_debugger_pc(self, pc: Any) -> None:
+        """UI thread: mark the current instruction (and navigate to it)."""
+        with contextlib.suppress(TypeError, ValueError):
+            self._pc_address = int(str(pc), 16) if pc else None
+        if self._pc_address is None:
+            self._refresh_marks()
+            return
+        visible = any(ins.address == self._pc_address for ins in self._view_instructions)
+        if visible:
+            self._refresh_marks()
+        elif self._model is not None:
+            self.navigate(self._pc_address, record=False)
+
+    def _on_breakpoints(self, payload: dict[str, Any]) -> None:
+        rows = payload.get("breakpoints") if isinstance(payload, dict) else None
+        self._breakpoint_addrs = {
+            int(str(row["address"]), 16)
+            for row in (rows or [])
+            if row.get("address") and str(row.get("enabled", "yes")) == "yes"
+        }
+        self._refresh_marks()
+
+    def _refresh_marks(self) -> None:
+        """Re-apply address-column backgrounds (PC row + breakpoint rows)."""
+        tokens = self._tokens()
+        pc_color = QColor(tokens["accent"])
+        bp_color = QColor(tokens.get("warn", "#FFB454"))
+        for row in range(self._disasm_table.rowCount()):
+            address_item = self._disasm_table.item(row, 4)
+            if address_item is None:
+                continue
+            address = address_item.data(Qt.ItemDataRole.UserRole)
+            if address is None:
+                continue
+            if address == self._pc_address:
+                address_item.setToolTip("▶ current instruction (PC)")
+                self._disasm_table.item(row, 0).setForeground(pc_color)
+                first = self._disasm_table.item(row, 2)
+                if first is not None:
+                    first.setForeground(pc_color)
+            elif address in self._breakpoint_addrs:
+                address_item.setToolTip("● breakpoint — F9 or the menu toggles it")
+                self._disasm_table.item(row, 0).setForeground(bp_color)
+
+    def _request_bp_toggle(self, address: int) -> None:
+        """Publish the toggle request; the Debugger module owns the engine."""
+        self.ctx.bus.publish(T_BP_TOGGLE_REQUEST, {"address": int(address)})
+
+    def _f9_toggle(self) -> None:
+        row = self._disasm_table.currentRow()
+        if row < 0 or row >= len(self._view_instructions):
+            self._status_label.setText("⚠ F9 toggles breakpoints on an instruction")
+            return
+        self._request_bp_toggle(self._view_instructions[row].address)
 
     # ------------------------------------------------------- binary loading
     def _open_dialog(self) -> None:
@@ -469,6 +540,7 @@ class DisassemblerPlugin(Plugin):
         self._fill_view()
         self._fill_xrefs()
         self._update_nav_buttons()
+        self._refresh_marks()
         count = len(self._view_instructions)
         self._status_label.setText(
             f"{self._view_name or hex(payload['address'])} — {count} instructions"
@@ -614,6 +686,12 @@ class DisassemblerPlugin(Plugin):
         menu.addSeparator()
         menu.addAction("Comment…", lambda: self._comment_dialog(ins.address))
         menu.addAction("Rename symbol…", lambda: self._rename_dialog(ins.address))
+        menu.addSeparator()
+        bp_here = ins.address in self._breakpoint_addrs
+        menu.addAction(
+            ("Remove breakpoint" if bp_here else "Toggle breakpoint here"),
+            lambda: self._request_bp_toggle(ins.address),
+        )
         menu.exec(self._disasm_table.viewport().mapToGlobal(pos))
 
     def _comment_dialog(self, address: int) -> None:
@@ -668,6 +746,8 @@ class DisassemblerPlugin(Plugin):
         self._history = []
         self._history_pos = -1
         self._pending_view += 1  # invalidate in-flight workers
+        self._pc_address = None
+        self._breakpoint_addrs.clear()
         self._func_table.setRowCount(0)
         self._disasm_table.setRowCount(0)
         self._xref_table.setRowCount(0)
