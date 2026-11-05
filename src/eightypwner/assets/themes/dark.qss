@@ -37,7 +37,10 @@ QDockWidget { color: ${fg}; }
 QDockWidget::title {
     background: ${panel_alt};
     border-bottom: 2px solid ${accent_dim};
-    padding: 5px 10px;
+    /* generous vertical padding: the text is laid out in the padding box, so
+       title height ends up = font + 2*8 + 2 (border) — descenders and fonts
+       with taller metrics (icon emoji fallbacks, DPI scaling) never clip */
+    padding: 8px 10px;
 }
 
 /* ---- status bar ---------------------------------------------------------- */
