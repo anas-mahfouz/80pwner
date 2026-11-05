@@ -57,6 +57,7 @@ T_ERROR = "debugger_error"
 T_DIED = "debugger_died"
 T_OUTPUT = "debugger_output"  # gdb console/log stream
 T_PROGRAM_OUTPUT = "program_output"
+T_BP_TOGGLE_REQUEST = "breakpoint_toggle_request"  # UI → whoever owns the engine
 T_BP_ADDED = "breakpoint_added"
 T_BP_REMOVED = "breakpoint_removed"
 T_BP_UPDATED = "breakpoint_updated"  # full snapshot after any change
@@ -375,7 +376,6 @@ class GdbEngine:
         controller = self._controller
         if controller is None:
             return
-        self._ensure_register_names(controller)
         # program TTY for the inferior's output + our program_stdin writes
         if self._pty_master is None and sys.platform != "win32":
             try:
@@ -401,6 +401,10 @@ class GdbEngine:
                 timeout_sec=COMMAND_TIMEOUT,
             )
             self._target_path = boot["target"]
+            # Fetch register names AFTER the file is loaded: gdb reports the
+            # i386-flavor name table (eip/eax…) before any symbol file, and a
+            # boot-time list would map values onto the wrong register names.
+            self._ensure_register_names(controller)
         if boot.get("cwd"):
             controller.write(
                 f"-environment-cd {shlex.quote(boot['cwd'])}", timeout_sec=COMMAND_TIMEOUT
