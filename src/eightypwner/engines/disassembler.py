@@ -153,33 +153,36 @@ class Disassembler:
         """Decode a function: linear within its body, stopping at hard markers.
 
         Heuristic (function-scope, never the whole binary): decode linearly
-        from entry; after an unconditional jump with no fallthrough target and
-        no following instruction anchors (padding/ret), stop decoding.
+        from the entry and stop at
+          * ``ret`` / ``hlt`` / ``iret`` — body ends,
+          * an unconditional ``jmp`` whose target escapes the function range
+            (a tail call), or an indirect jump (``jmp rax``) — basic block end,
+          * whenever new non-padding code pushes past the chunk boundary.
+        Conditional branches only end a basic block, never the function.
         """
-        cache_key = (vaddr, att_syntax, 0, limit)
+        cache_key = (vaddr, att_syntax, 1, limit)
         cached = self._cache_ranges.get(cache_key)
         if cached is not None:
             return cached
         out: list[Instruction] = []
         chunk = 4096
         cursor = vaddr
-        stop = False
-        while not stop and len(out) < limit:
+        stopped = False
+        while not stopped and len(out) < limit:
             produced = 0
-            prev_last = None
+            prev_last: Instruction | None = None
             for insn in self.decode(cursor, chunk, att_syntax):
                 produced += 1
                 out.append(insn)
                 prev_last = insn
                 if len(out) >= limit:
                     break
-            if produced == 0 or prev_last is None:
+                if _ends_function(insn, vaddr):
+                    stopped = True
+                    break
+            if not produced or prev_last is None:
                 break
             cursor = prev_last.address + prev_last.size
-            # extend detection: if the last instruction was ret/iret/hlt/jmp,
-            # the function body likely ended; stop after seeing it.
-            if prev_last.mnemonic.split(".")[0] in ("ret", "hlt", "jmp", "iret", "syscall"):
-                stop = True
         self._cache_ranges[cache_key] = out
         return out
 
@@ -221,3 +224,16 @@ def _is_conditional(mnemonic: str, arch: str) -> bool:
     if arch == "arm" or arch == "aarch64":
         return mnemonic.startswith("b.") or mnemonic in ("bl",)
     return False
+
+
+def _ends_function(insn: Instruction, function_start: int) -> bool:
+    """Instruction terminates (per the heuristic) a function body."""
+    mnemonic = insn.mnemonic.split(".")[0]  # ARM condition suffixes (beq…)
+    if mnemonic in ("ret", "hlt", "iret", "ud2"):
+        return True
+    if mnemonic != "jmp":
+        return False
+    target = _immediate_operand(insn.operands)
+    if target is None:
+        return True  # indirect jump: can't follow — treat as body end
+    return not (function_start <= target <= insn.address + insn.size)

@@ -5,6 +5,7 @@
 # Importing each module package registers its Plugin classes for discovery.
 from eightypwner.modules.builtin import (
     binary_overview,  # noqa: F401
+    disassembler,  # noqa: F401
     welcome,  # noqa: F401
 )
 

@@ -26,6 +26,9 @@ BINARY_LOAD_FAILED = "binary_load_failed"
 OPEN_BINARY_REQUESTED = "open_binary_requested"
 DEBUGGER_STOPPED = "debugger_stopped"
 ADDRESS_SELECTED = "address_selected"
+FUNCTION_SELECTED = "function_selected"
+FUNCTIONS_DISCOVERED = "functions_discovered"  # worker→UI: index + ready disassembler
+DISASSEMBLY_READY = "disassembly_ready"  # worker→UI: one view (address, instructions)
 
 
 class EventBus:

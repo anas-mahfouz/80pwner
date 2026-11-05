@@ -79,7 +79,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.theme:
         theme.set_mode_persist(args.theme)
 
-    ctx = PluginContext(bus=bus, settings=settings, app_version="0.1.0", ui_bus=ui_bus, theme=theme)
+    ctx = PluginContext(
+        bus=bus, settings=settings, app_version="0.1.0", ui_bus=ui_bus, theme=theme, session=session
+    )
     registry = PluginRegistry(ctx)
     registry.load_builtins()
     registry.load_external()

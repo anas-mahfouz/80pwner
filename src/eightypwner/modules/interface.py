@@ -29,6 +29,7 @@ class PluginContext:
     app_version: str
     ui_bus: Any | None = None
     theme: Any | None = None  # ThemeManager, when available (theme-aware plugins)
+    session: Any | None = None  # SessionState, for comments/renames (Step 3)
 
 
 class Plugin(ABC):
