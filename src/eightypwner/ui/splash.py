@@ -17,7 +17,7 @@ from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication, QSplashScreen, QWidget
 
 from eightypwner.constants import APP_AUTHOR
-from eightypwner.ui.banner import banner_pixmap
+from eightypwner.ui.banner import ascii_banner_pixmap
 from eightypwner.ui.theme import DARK_TOKENS
 
 SPLASH_MIN_MS = 700
@@ -27,7 +27,7 @@ _shown_at: list[float] = []
 
 def show_splash() -> QSplashScreen:
     """Show the splash and record when it appeared."""
-    splash = QSplashScreen(banner_pixmap(460, DARK_TOKENS))
+    splash = QSplashScreen(ascii_banner_pixmap(720, DARK_TOKENS))
     splash.showMessage(
         f"by {APP_AUTHOR}",
         int(Qt.AlignmentFlag.AlignBottom),

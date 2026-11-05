@@ -4,6 +4,12 @@
 
 from __future__ import annotations
 
+import contextlib
+import logging
+from importlib import resources
+
+log = logging.getLogger(__name__)
+
 APP_NAME = "80PWNER"          # short brand (titles, status bar)
 APP_BANNER = "THE80-PWNER"    # full banner word (welcome, splash, About, CLI art)
 APP_AUTHOR = "Anas Mahfouz (The80)"
@@ -24,8 +30,56 @@ ACCENT_DARK = "#FF2D3D"
 ACCENT_LIGHT = "#C8102E"
 
 # ---------------------------------------------------------------- ASCII banner
-# Glyph bitmaps (7 rows, # cells) so the CLI art is plain ASCII, readable in any
-# terminal — and "8", "0" and "-" are visually distinct (slashed zero).
+# The CLI/GUI art is a *static* FIGlet asset (ansi_shadow font — the zero has a
+# solid mid bar and '8' is unmistakable vs 'B'). Regenerate with
+#   python tools/gen_banner.py   (pyfiglet — dev-only, never a runtime dep)
+BANNER_ASSET = "banner.txt"
+
+
+def load_banner_art() -> tuple[str, int]:
+    """(art, split_column) from the bundled asset; glyph art as fallback."""
+    try:
+        raw = resources.files("eightypwner.assets").joinpath(BANNER_ASSET).read_text(
+            encoding="utf-8"
+        )
+        split = 42  # sane default when the header comment is editable away
+        lines: list[str] = []
+        for line in raw.splitlines():
+            if line.startswith("#"):
+                if "two-tone split at column" in line:
+                    with contextlib.suppress(ValueError, IndexError):
+                        split = int(line.split("column")[1].split()[0])
+                continue
+            lines.append(line)
+        while lines and not lines[-1].strip():
+            lines.pop()
+        if lines:
+            return "\n".join(lines), split
+    except (OSError, ModuleNotFoundError):
+        log.warning("Bundled banner asset missing; using built-in glyph art")
+    return _glyph_fallback(APP_BANNER), 0
+
+
+def ascii_banner(text: str = APP_BANNER) -> str:
+    """ASCII banner text; non-banner words use the tiny built-in glyph font."""
+    if text == APP_BANNER:
+        return load_banner_art()[0]
+    return _glyph_fallback(text)
+
+
+def _glyph_fallback(text: str) -> str:
+    """Tiny built-in block font, used only if the banner asset ever goes missing.
+    Every banner character must have a glyph; digits and '-' stay distinctive."""
+    lines = ["" for _ in range(7)]
+    for char in text:
+        glyph = _GLYPHS.get(char)
+        if glyph is None:
+            raise KeyError(f"No ASCII glyph for {char!r}")
+        lines = [line + "  " + cell for line, cell in zip(lines, glyph, strict=True)]
+    return "\n".join(line.rstrip() for line in lines)
+
+
+# Fallback font (see _glyph_fallback): tiny 7-row block glyphs.
 _GLYPHS: dict[str, tuple[str, ...]] = {
     " ": (
         "      ",
@@ -136,18 +190,6 @@ _GLYPHS: dict[str, tuple[str, ...]] = {
         "######",
     ),
 }
-
-
-def ascii_banner(text: str = APP_BANNER) -> str:
-    """Render *text* with the glyph font; raises on unknown characters."""
-    lines = ["" for _ in range(7)]
-    for char in text:
-        glyph = _GLYPHS.get(char)
-        if glyph is None:
-            raise KeyError(f"No ASCII glyph for {char!r}")
-        lines = [line + "  " + cell for line, cell in zip(lines, glyph, strict=True)]
-    return "\n".join(line.rstrip() for line in lines)
-
 
 ASCII_ART = ascii_banner()  # module-level so `--version` output stays stable
 

@@ -36,11 +36,11 @@ class AboutDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle(f"About {APP_NAME}")
 
-        from eightypwner.ui.banner import banner_pixmap
+        from eightypwner.ui.banner import ascii_banner_pixmap
         from eightypwner.ui.theme import DARK_TOKENS
 
         banner = QLabel()
-        banner.setPixmap(banner_pixmap(380, tokens or DARK_TOKENS))
+        banner.setPixmap(ascii_banner_pixmap(520, tokens or DARK_TOKENS))
         banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         heading = QLabel(
