@@ -59,12 +59,12 @@ def main(argv: list[str] | None = None) -> int:
     from eightypwner.ui.main_window import MainWindow
     from eightypwner.ui.theme import ThemeManager
 
-    app = QApplication(sys.argv)
-    app.setStyle("Fusion")  # identical chrome on Windows/macOS/Linux (spec C)
-    # High-DPI: exact scaling at 100%/150%/200% — pass-through keeps VRR exact.
+    # High-DPI + consistent chrome BEFORE QApplication exists.
     QApplication.setHighDpiScaleFactorRoundingPolicy(
         Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
     )
+    app = QApplication(sys.argv)
+    app.setStyle("Fusion")  # identical look on Windows/macOS/Linux (spec C)
     app.setApplicationName("80PWNER")
     app.setOrganizationName("The80")
     from eightypwner.ui.fonts import load_bundled_fonts
