@@ -13,11 +13,11 @@ from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QFont
-from PySide6.QtWidgets import QLabel, QScrollArea, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QLabel, QVBoxLayout, QWidget
 
 from eightypwner.constants import APP_AUTHOR, APP_NAME, APP_VERSION
 from eightypwner.modules.interface import Plugin
-from eightypwner.ui.banner import AsciiBannerWidget
+from eightypwner.ui.banner import BannerWidget
 from eightypwner.ui.fonts import resolve_monospace
 
 if TYPE_CHECKING:
@@ -37,16 +37,10 @@ class WelcomePlugin(Plugin):
         layout.addStretch(1)
 
         tokens = self._tokens()
-        # ASCII banner (figlet asset): wrapped in a scroll area so very narrow
-        # windows fall back to horizontal scrolling instead of clipping.
-        self._banner = AsciiBannerWidget(tokens)
-        self._scroll = QScrollArea()
-        self._scroll.setWidget(self._banner)
-        self._scroll.setWidgetResizable(True)
-        self._scroll.setFrameShape(QScrollArea.Shape.NoFrame)
-        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
-        self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        layout.addWidget(self._scroll, 1)
+        # Bitmap banner: scales uniformly to the dock width (integer cell
+        # sizes whenever they fit) — never clipped, no scroll fallback needed.
+        self._banner = BannerWidget(tokens)
+        layout.addWidget(self._banner, 1)
 
         title = QLabel(f"<h2>{APP_NAME} {APP_VERSION}</h2><p style='margin:0'><i>by {APP_AUTHOR}</i></p>")
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
