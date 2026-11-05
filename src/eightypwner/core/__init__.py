@@ -1,5 +1,7 @@
 # 80PWNER — by Anas Mahfouz (The80)
 
-"""Core services: event bus, settings, session state. No GUI imports here."""
+"""Core services: event bus, settings, session state, UI event bridge.
+
+No GUI imports here except the lightweight bridge."""
 
 from __future__ import annotations

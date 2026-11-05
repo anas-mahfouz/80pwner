@@ -3,5 +3,8 @@
 """Built-in modules live here. Real modules arrive from Step 2 onwards."""
 
 # Importing each module package registers its Plugin classes for discovery.
-from eightypwner.modules.builtin import welcome  # noqa: F401
+from eightypwner.modules.builtin import (
+    binary_overview,  # noqa: F401
+    welcome,  # noqa: F401
+)
 

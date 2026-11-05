@@ -53,7 +53,7 @@ def main(argv: list[str] | None = None) -> int:
     from eightypwner.core.event_bus import EventBus
     from eightypwner.core.session import SessionState
     from eightypwner.core.settings import Settings
-    from eightypwner.modules.builtin.welcome import WelcomePlugin  # noqa: F401 (pkg discovery)
+    from eightypwner.core.ui_dispatch import UiBus
     from eightypwner.modules.interface import PluginContext
     from eightypwner.modules.registry import PluginRegistry
     from eightypwner.ui.main_window import MainWindow
@@ -61,12 +61,10 @@ def main(argv: list[str] | None = None) -> int:
 
     app = QApplication(sys.argv)
     app.setStyle("Fusion")  # identical chrome on Windows/macOS/Linux (spec C)
-    # High-DPI: exact scaling at 100%/150%/200% (Qt6 auto-detect happens by
-    # default; the rounding policy avoids blurry fractional scaling).
-    if hasattr(Qt, "HighDpiScaleFactorRoundingPolicy"):
-        QApplication.setHighDpiScaleFactorRoundingPolicy(
-            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
-        )
+    # High-DPI: exact scaling at 100%/150%/200% — pass-through keeps VRR exact.
+    QApplication.setHighDpiScaleFactorRoundingPolicy(
+        Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+    )
     app.setApplicationName("80PWNER")
     app.setOrganizationName("The80")
     from eightypwner.ui.fonts import load_bundled_fonts
@@ -75,17 +73,18 @@ def main(argv: list[str] | None = None) -> int:
 
     settings = Settings()
     bus = EventBus()
+    ui_bus = UiBus(bus)
     session = SessionState()
     theme = ThemeManager(settings)
     if args.theme:
         theme.set_mode_persist(args.theme)
 
-    ctx = PluginContext(bus=bus, settings=settings, app_version="0.1.0")
+    ctx = PluginContext(bus=bus, settings=settings, app_version="0.1.0", ui_bus=ui_bus)
     registry = PluginRegistry(ctx)
     registry.load_builtins()
     registry.load_external()
 
-    window = MainWindow(bus, theme, registry, session, settings)
+    window = MainWindow(ui_bus, theme, registry, session, settings)
     window.restore_layout()
     window.show()
 

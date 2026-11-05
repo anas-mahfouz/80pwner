@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import base64
 import logging
-from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import Qt
@@ -21,14 +20,16 @@ from PySide6.QtWidgets import (
 )
 
 from eightypwner.constants import APP_VERSION, FOOTER_TEXT, window_title
-from eightypwner.core.event_bus import BINARY_DROPPED, BINARY_LOADED, EventBus
+from eightypwner.core.event_bus import BINARY_DROPPED, BINARY_LOADED, OPEN_BINARY_REQUESTED
 from eightypwner.core.session import SessionState
 from eightypwner.ui.about_dialog import AboutDialog
 from eightypwner.ui.logo import app_logo_pixmap
 from eightypwner.ui.theme import ThemeManager
 
 if TYPE_CHECKING:
+    from eightypwner.core.event_bus import EventBus
     from eightypwner.core.settings import Settings
+    from eightypwner.core.ui_dispatch import UiBus
     from eightypwner.modules.registry import PluginRegistry
 
 log = logging.getLogger(__name__)
@@ -56,14 +57,14 @@ class MainWindow(QMainWindow):
 
     def __init__(
         self,
-        bus: EventBus,
+        bus: UiBus | EventBus,
         theme: ThemeManager,
         registry: PluginRegistry,
         session: SessionState,
         settings: Settings,
     ) -> None:
         super().__init__()
-        self.bus = bus
+        self.bus = bus  # subscribe() compatible — UiBus (cross-thread) or raw bus
         self.theme = theme
         self.registry = registry
         self.session = session
@@ -95,7 +96,10 @@ class MainWindow(QMainWindow):
         m_file = menubar.addMenu("&File")
         act_open = m_file.addAction("&Open Binary…")
         act_open.setShortcut(QKeySequence("Ctrl+O"))
-        act_open.setEnabled(False)  # wired up with the Binary Overview module in Step 2
+        # The Binary Overview module owns parsing; the window just asks for a file.
+        act_open.triggered.connect(
+            lambda: self.bus.publish(OPEN_BINARY_REQUESTED, {})
+        )
         act_settings = m_file.addAction("&Settings…")
         act_settings.setShortcut(QKeySequence("Ctrl+,"))
         act_settings.setEnabled(False)  # settings dialog lands in a later step
@@ -173,10 +177,16 @@ class MainWindow(QMainWindow):
         """Track title/status from the bus — the single source of truth."""
         if topic == BINARY_LOADED:
             info = payload if isinstance(payload, dict) else {}
-            name = info.get("name") or (Path(str(info.get("path", ""))).name or None)
+            name = info.get("name")
+            arch = info.get("arch")
+            model = info.get("model")
+            if model is not None:
+                self.session.binary_path = getattr(model, "path", None)
+                name = name or model.name
+                arch = arch or model.arch
             self.setWindowTitle(window_title(name))
             self.lbl_binary.setText(f"Binary: {name or '?'}")
-            self.lbl_arch.setText(str(info.get("arch", "")))
+            self.lbl_arch.setText(str(arch or ""))
         elif topic == BINARY_DROPPED and isinstance(payload, dict):
             log.info("Binary dropped: %s", payload.get("path"))
 

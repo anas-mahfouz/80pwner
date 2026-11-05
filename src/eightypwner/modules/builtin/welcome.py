@@ -8,6 +8,7 @@ theme via ``role`` properties (QSS selectors), so it adapts to dark/light.
 
 from __future__ import annotations
 
+import contextlib
 from typing import Any
 
 from PySide6.QtCore import Qt
@@ -66,8 +67,18 @@ class WelcomePlugin(Plugin):
             )
 
     def initialize(self, parent: Any = None) -> None:
-        # Core startup publishes its own "app_ready" event with target info.
-        self.ctx.bus.subscribe("*", self.on_event)
+        # UI touches (the hint label) must happen on the UI thread — use the
+        # UiBus bridge when available, or the raw bus otherwise.
+        subscribe = (
+            self.ctx.ui_bus.subscribe
+            if self.ctx.ui_bus is not None
+            else self.ctx.bus.subscribe
+        )
+        self._unsub = subscribe("*", self.on_event)
+
+    def shutdown(self) -> None:
+        with contextlib.suppress(Exception):
+            self._unsub()
 
 
 def _escape(text: str) -> str:

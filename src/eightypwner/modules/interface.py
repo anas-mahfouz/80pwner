@@ -18,11 +18,16 @@ if TYPE_CHECKING:
 
 @dataclass(frozen=True)
 class PluginContext:
-    """Services handed to every plugin; keeps plugins decoupled from the app."""
+    """Services handed to every plugin; keeps plugins decoupled from the app.
+
+    ``ui_bus`` is optional; plugins whose widgets react to events should
+    subscribe through it so worker-thread events arrive on the UI thread.
+    """
 
     bus: EventBus
     settings: Settings
     app_version: str
+    ui_bus: Any | None = None
 
 
 class Plugin(ABC):

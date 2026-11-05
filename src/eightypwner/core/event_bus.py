@@ -22,6 +22,8 @@ log = logging.getLogger(__name__)
 BINARY_DROPPED = "binary_dropped"
 BINARY_LOADED = "binary_loaded"
 BINARY_CLOSED = "binary_closed"
+BINARY_LOAD_FAILED = "binary_load_failed"
+OPEN_BINARY_REQUESTED = "open_binary_requested"
 DEBUGGER_STOPPED = "debugger_stopped"
 ADDRESS_SELECTED = "address_selected"
 
