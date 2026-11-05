@@ -49,6 +49,7 @@ class Section:
     size: int
     vaddr: int
     type: str = ""
+    file_offset: int = 0
 
 
 @dataclass(frozen=True)
@@ -57,6 +58,7 @@ class Segment:
     vaddr: int
     size: int
     flags: str = "---"  # composite rwx
+    file_offset: int = 0
 
 
 @dataclass(frozen=True)
@@ -323,6 +325,7 @@ def _lief_sections(raw: object, model: BinaryModel) -> None:
                 size=int(section.size),
                 vaddr=int(getattr(section, "virtual_address", 0) or 0),
                 type=_enum_name(getattr(section, "type", "")) or "content",
+                file_offset=int(getattr(section, "offset", 0) or 0),
             )
         )
 
@@ -531,6 +534,7 @@ def _from_pyelftools(path: Path, data: bytes) -> BinaryModel:
                     size=int(section["sh_size"]),
                     vaddr=int(section["sh_addr"]),
                     type=section["sh_type"] if isinstance(section["sh_type"], str) else "",
+                    file_offset=int(section["sh_offset"]),
                 )
             )
         for seg in elf.iter_segments():
@@ -548,6 +552,7 @@ def _from_pyelftools(path: Path, data: bytes) -> BinaryModel:
                     ) + (
                         "x" if flags_int & 0x1 else "-"
                     ),
+                    file_offset=int(seg["p_offset"]),
                 )
             )
         # symbols: symtab first, then dynsym; SHN_UNDEF dynamic ones are imports
