@@ -21,7 +21,6 @@ all static modules keep working).
 
 from __future__ import annotations
 
-import base64
 import errno
 import logging
 import os
@@ -240,8 +239,8 @@ class GdbEngine:
         self.queued(f"-data-read-memory-bytes 0x{address:x} {int(size)}")
 
     def write_memory(self, address: int, data: bytes) -> None:
-        encoded = base64.b64encode(data).decode("ascii")
-        self.queued(f"-data-write-memory-bytes 0x{address:x} {encoded}")
+        # -data-write-memory-bytes takes the bytes as a plain hex string
+        self.queued(f"-data-write-memory-bytes 0x{address:x} {data.hex()}")
         # ^done carries no echo; announce so the UI can refresh its region
         self._emit(T_MEMORY_CHANGED, {"address": hex(address), "size": len(data)})
 
