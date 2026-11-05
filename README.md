@@ -18,7 +18,7 @@ every module works on the same target and stays synchronized.
 > Educational + CTF use (pwn.college, picoCTF, HackTheBox, local labs).
 > Analyze and debug binaries you own or are authorized to test.
 
-## Features (build status: Step 2 of 10 ✅)
+## Features (build status: Step 3 of 10 ✅)
 
 - **Theme system** — Dark / Light / follow-system, persisted; red accent
   (#FF2D3D dark / #C8102E light); semantic colors stay separate so checksec
@@ -30,6 +30,13 @@ every module works on the same target and stays synchronized.
   imports/exports, strings (interesting first), colored mitigation badges
   (NX, PIE, RELRO, canary, fortify) with one-line explanations, and
   dangerous-function highlighting (gets, strcpy, system, printf-family…)
+- **Disassembler + function list** — Capstone engine (x86 32/64, ARM,
+  AArch64, MIPS, PPC, RISC-V); discover functions from symbols + entry +
+  call targets with per-function lazy decoding (big binaries stay fast);
+  address/bytes/instruction view with token-based syntax coloring, Intel/AT&T
+  toggle (x86), function filter + sort, xrefs to/from, Ctrl+G address jump,
+  back/forward history, double-click call/jmp navigation, per-session
+  comments and renamed symbols (persisted JSON), right-click copy
 - Cross-platform: platformdirs paths (+ auto-migration from `~/.80pwner`),
   bundled JetBrains Mono (OFL), Fusion Qt style, high-DPI scaling
 
@@ -107,7 +114,7 @@ pytest                    # headless (offscreen Qt by default)
 
 1. ✅ Scaffold, theme manager, main window, branding, plugin system
 2. ✅ Binary Overview + checksec (+ samples)
-3. Disassembler + function list (Capstone)
+3. ✅ Disassembler + function list (Capstone)
 4. GDB/MI integration + Debugger GUI
 5. Stack Visualizer
 6. Gadget Finder + Pattern Tool
