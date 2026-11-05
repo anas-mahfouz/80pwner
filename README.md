@@ -18,7 +18,7 @@ every module works on the same target and stays synchronized.
 > Educational + CTF use (pwn.college, picoCTF, HackTheBox, local labs).
 > Analyze and debug binaries you own or are authorized to test.
 
-## Features (build status: Step 3 of 10 ✅)
+## Features (build status: Step 4 of 10 ✅)
 
 - **Theme system** — Dark / Light / follow-system, persisted; red accent
   (#FF2D3D dark / #C8102E light); semantic colors stay separate so checksec
@@ -37,6 +37,17 @@ every module works on the same target and stays synchronized.
   toggle (x86), function filter + sort, xrefs to/from, Ctrl+G address jump,
   back/forward history, double-click call/jmp navigation, per-session
   comments and renamed symbols (persisted JSON), right-click copy
+- **Debugger (live GDB/MI)** — run dialogs (args / stdin-file / env / working
+  dir, break at main) or attach to a PID; Registers panel (changed values
+  highlighted, editable — Enter rewrites the register), Stack panel (words
+  around $sp with pointer annotations), hex Memory view (go-to `0x…`/`$sp`,
+  click-to-edit bytes), Breakpoints panel (add 0x… or fn-name,
+  enable/disable/delete), GDB console (MI or plain `c` / `info locals`) and
+  Program I/O (live stdout on a pty + stdin box); shortcuts F5 run/continue,
+  F9 toggle breakpoint (in the disassembly too — menu or F9), F10 step over,
+  F11 step into, Shift+F11 finish; the disassembly view follows the debugger:
+  current-instruction marking, navigation to the stop address and breakpoint
+  marks; clean shutdown kills gdb + the debuggee (no orphans)
 - Cross-platform: platformdirs paths (+ auto-migration from `~/.80pwner`),
   bundled JetBrains Mono (OFL), Fusion Qt style, high-DPI scaling
 
