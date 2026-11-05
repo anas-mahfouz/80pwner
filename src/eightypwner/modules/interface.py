@@ -28,6 +28,7 @@ class PluginContext:
     settings: Settings
     app_version: str
     ui_bus: Any | None = None
+    theme: Any | None = None  # ThemeManager, when available (theme-aware plugins)
 
 
 class Plugin(ABC):

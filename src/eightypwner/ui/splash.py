@@ -2,9 +2,10 @@
 
 """Splash screen showing the brand while the app boots (spec §2).
 
-QSplashScreen has no "minimum duration" API (that belongs to QProgressDialog),
-so we keep the splash visible for a short fixed time and let the caller
-``finish()`` it over the main window once that time has elapsed.
+Uses the vector banner (QPainterPath text: "THE80-PWNER") so the branding is
+crisp on every display. QSplashScreen has no "minimum duration" API (that
+belongs to QProgressDialog), so we keep the splash visible for a short fixed
+time and let the caller ``finish()`` it over the main window.
 """
 
 from __future__ import annotations
@@ -15,8 +16,9 @@ from PySide6.QtCore import QEventLoop, Qt, QTimer
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import QApplication, QSplashScreen, QWidget
 
-from eightypwner.constants import APP_AUTHOR, APP_NAME
-from eightypwner.ui.logo import app_logo_pixmap
+from eightypwner.constants import APP_AUTHOR
+from eightypwner.ui.banner import banner_pixmap
+from eightypwner.ui.theme import DARK_TOKENS
 
 SPLASH_MIN_MS = 700
 
@@ -25,11 +27,11 @@ _shown_at: list[float] = []
 
 def show_splash() -> QSplashScreen:
     """Show the splash and record when it appeared."""
-    splash = QSplashScreen(app_logo_pixmap(320))
+    splash = QSplashScreen(banner_pixmap(460, DARK_TOKENS))
     splash.showMessage(
-        f"{APP_NAME} — by {APP_AUTHOR}",
+        f"by {APP_AUTHOR}",
         int(Qt.AlignmentFlag.AlignBottom),
-        QColor("#FF2D3D"),  # brand accent; the splash tile is always dark
+        QColor(DARK_TOKENS["accent"]),
     )
     splash.show()
     app = QApplication.instance()

@@ -54,3 +54,13 @@ class UiBus(QObject):
     def unsubscribe(self, topic: str, callback: Callable[[str, Any], None]) -> None:
         with contextlib.suppress(ValueError):
             self._subs.remove((topic, callback))
+
+    # ---------------------------------------------------------------- publish
+    def publish(self, topic: str, payload: Any = None) -> None:
+        """Forward-caller transparency: publish on the raw bus.
+
+        Useful when components hold the UiBus but need to emit a new event —
+        the emission happens on the caller's thread and UI subscribers receive
+        it on this object's thread (the UI thread).
+        """
+        self._bus.publish(topic, payload)

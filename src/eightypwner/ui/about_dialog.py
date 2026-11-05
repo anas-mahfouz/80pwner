@@ -28,15 +28,20 @@ _ENGINE_DEPS: dict[str, str] = {
 
 
 class AboutDialog(QDialog):
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(
+        self,
+        parent: QWidget | None = None,
+        tokens: dict[str, str] | None = None,
+    ) -> None:
         super().__init__(parent)
         self.setWindowTitle(f"About {APP_NAME}")
 
-        from eightypwner.ui.logo import app_logo_pixmap
+        from eightypwner.ui.banner import banner_pixmap
+        from eightypwner.ui.theme import DARK_TOKENS
 
-        logo = QLabel()
-        logo.setPixmap(app_logo_pixmap(96))
-        logo.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        banner = QLabel()
+        banner.setPixmap(banner_pixmap(380, tokens or DARK_TOKENS))
+        banner.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         heading = QLabel(
             f"<h1>{APP_NAME} {APP_VERSION}</h1>"
@@ -54,7 +59,7 @@ class AboutDialog(QDialog):
         buttons.accepted.connect(self.accept)
 
         layout = QVBoxLayout(self)
-        layout.addWidget(logo)
+        layout.addWidget(banner)
         layout.addWidget(heading)
         layout.addWidget(deps)
         layout.addWidget(buttons)

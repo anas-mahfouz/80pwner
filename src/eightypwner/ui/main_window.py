@@ -166,6 +166,15 @@ class MainWindow(QMainWindow):
             self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock)
             self._dock_by_name[plugin.name] = dock
 
+        # Let theme-aware plugins know the module set (welcome's "loaded modules").
+        self.bus.publish(
+            "modules_loaded",
+            {"plugins": [
+                {"name": p.name, "icon": p.icon, "description": p.description}
+                for p in self.registry.plugins
+            ]},
+        )
+
     # -- theme ---------------------------------------------------------------
     def _refresh_theme_action(self) -> None:
         label = "☀ Switch to light" if self.theme.resolved_mode() == "dark" else "🌙 Switch to dark"
@@ -218,7 +227,7 @@ class MainWindow(QMainWindow):
         self.settings.set("window.dock_state", _qba_to_b64(self.saveState(0)))
 
     def _show_about(self) -> None:
-        AboutDialog(self).exec()
+        AboutDialog(self, tokens=dict(self.theme.theme().tokens)).exec()
 
 
 def _qba_to_b64(qba: Any) -> str:
