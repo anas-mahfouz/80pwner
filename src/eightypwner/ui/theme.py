@@ -27,27 +27,39 @@ log = logging.getLogger(__name__)
 ThemeMode = Literal["dark", "light", "system"]
 ThemeModes = ("dark", "light", "system")
 
-# Token palettes (spec §2 accents: #00FF9C dark / #007A5A light).
+# Token palettes (spec §2 accents — RED per revision B: #FF2D3D dark / #C8102E light).
+# Accent is a UI/selection color; semantic colors stay separate so checksec-style
+# badges (enabled=green, disabled=red-error) remain readable and distinguishable.
 DARK_TOKENS = {
     "mode": "dark",
-    "accent": "#00FF9C",
-    "accent_dim": "#1E7A5C",
-    "on_accent": "#06100C",
+    "accent": "#FF2D3D",
+    "accent_hover": "#FF5560",
+    "accent_pressed": "#C81E2C",
+    "accent_dim": "#8A1E28",
+    "on_accent": "#120205",
     "bg": "#0F1418",
     "panel": "#161B20",
     "panel_alt": "#1C2429",
     "fg": "#E8F0EC",
     "dim": "#9AA8A2",
     "border": "#2A333A",
+    # semantic (NOT accent): success/warning/error/watch/na
+    "ok": "#34D399",
+    "ok_bg": "#0E2E22",
     "warn": "#FFB454",
-    "danger": "#FF5C57",
-    "ok": "#00E17F",
+    "warn_bg": "#33230C",
+    "error": "#9E1B26",
+    "on_error": "#FFFFFF",
+    "na": "#9AA8A2",
+    "na_bg": "#2A333A",
 }
 
 LIGHT_TOKENS = {
     "mode": "light",
-    "accent": "#007A5A",
-    "accent_dim": "#009473",
+    "accent": "#C8102E",
+    "accent_hover": "#E02A45",
+    "accent_pressed": "#9E0C24",
+    "accent_dim": "#D98CA0",
     "on_accent": "#FFFFFF",
     "bg": "#F4F7F6",
     "panel": "#FFFFFF",
@@ -55,9 +67,15 @@ LIGHT_TOKENS = {
     "fg": "#17211C",
     "dim": "#5E6E67",
     "border": "#C9D4CF",
-    "warn": "#B26A00",
-    "danger": "#C62828",
-    "ok": "#007A5A",
+    # semantic (NOT accent): success/warning/error/watch/na
+    "ok": "#00734D",
+    "ok_bg": "#DDF2E8",
+    "warn": "#9A5B00",
+    "warn_bg": "#FBF0DC",
+    "error": "#8C1A20",
+    "on_error": "#FFFFFF",
+    "na": "#5E6E67",
+    "na_bg": "#DDE4E1",
 }
 
 

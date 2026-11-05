@@ -30,16 +30,13 @@ QToolBar {
     spacing: 6px;
 }
 QToolBar::separator { width: 1px; background: ${border}; margin: 4px; }
+QToolButton:hover { color: ${accent_hover}; }
 
 /* ---- docks --------------------------------------------------------------- */
-QDockWidget {
-    titlebar-close-icon: none;
-    titlebar-normal-icon: none;
-    color: ${fg};
-}
+QDockWidget { color: ${fg}; }
 QDockWidget::title {
     background: ${panel_alt};
-    border-bottom: 1px solid ${accent_dim};
+    border-bottom: 2px solid ${accent_dim};
     padding: 5px 10px;
 }
 
@@ -59,8 +56,8 @@ QPushButton {
     border-radius: 4px;
     padding: 4px 12px;
 }
-QPushButton:hover { border-color: ${accent}; color: ${accent}; }
-QPushButton:pressed, QPushButton:checked { background: ${accent}; color: ${on_accent}; }
+QPushButton:hover { border-color: ${accent_hover}; color: ${accent_hover}; }
+QPushButton:pressed, QPushButton:checked { background: ${accent_pressed}; color: ${on_accent}; }
 QPushButton:disabled { color: ${dim}; border-color: ${border}; }
 
 QLineEdit, QPlainTextEdit, QTextEdit, QSpinBox, QComboBox {
@@ -72,7 +69,9 @@ QLineEdit, QPlainTextEdit, QTextEdit, QSpinBox, QComboBox {
     selection-background-color: ${accent};
     selection-color: ${on_accent};
 }
-QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus { border-color: ${accent}; }
+QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QComboBox:focus {
+    border: 1px solid ${accent};
+}
 
 QScrollBar:vertical { background: ${panel}; width: 10px; }
 QScrollBar::handle:vertical { background: ${border}; border-radius: 4px; min-height: 24px; }
@@ -92,12 +91,31 @@ QLabel[role="brandFooter"] {
     color: ${accent};
     padding: 0 8px;
 }
-QLabel[role="brandFooter"]:hover { color: ${fg}; }
+QLabel[role="brandFooter"]:hover { color: ${accent_hover}; }
 
-QPanel, QPlainTextEdit, QTextEdit { background: ${panel_alt}; }
+/* Table "current row / selection" highlights in accent */
+QTableView, QTreeView, QListView {
+    selection-background-color: ${accent};
+    selection-color: ${on_accent};
+    alternate-background-color: ${panel_alt};
+    gridline-color: ${border};
+}
+QHeaderView::section {
+    background: ${panel};
+    color: ${fg};
+    border: none;
+    border-right: 1px solid ${border};
+    border-bottom: 2px solid ${accent_dim};
+    padding: 4px 8px;
+}
 
-/* monospace content widgets get the configured font at runtime */
-QPlainTextEdit, QTextEdit { font-family: $MONO; }
+/* ---- semantic badges (checksec etc.) — NOT the accent ---------------------- */
+QLabel[role="badge-ok"]    { color: ${ok};    background: ${ok_bg};    border-radius: 3px; padding: 2px 8px; font-weight: bold; }
+QLabel[role="badge-warn"]  { color: ${warn};  background: ${warn_bg};  border-radius: 3px; padding: 2px 8px; font-weight: bold; }
+QLabel[role="badge-error"] { color: ${on_error}; background: ${error}; border-radius: 3px; padding: 2px 8px; font-weight: bold; }
+QLabel[role="badge-na"]    { color: ${na};    background: ${na_bg};    border-radius: 3px; padding: 2px 8px; }
+
+QPlainTextEdit, QTextEdit { background: ${panel_alt}; font-family: $MONO; }
 
 /* Tool tips */
 QToolTip {

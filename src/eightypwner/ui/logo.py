@@ -10,9 +10,9 @@ from PySide6.QtGui import QBrush, QFont, QLinearGradient, QPainter, QPainterPath
 
 from eightypwner.constants import ACCENT_DARK
 
-_TILE_BG_TOP = "#001410"
+_TILE_BG_TOP = "#000A0E"
 _TILE_BG_BOTTOM = "#05070A"
-_CARET_DIM = "#1E7A5C"
+_CARET_DIM = "#7A2B34"
 
 
 def app_logo_pixmap(size: int = 256) -> QPixmap:

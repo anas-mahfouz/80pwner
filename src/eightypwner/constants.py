@@ -16,9 +16,9 @@ APP_LICENSE = "MIT"
 ORG_NAME = "The80"
 SETTINGS_APP = "80PWNER"
 
-# Accents (spec §2): neon green on dark, deep teal on light.
-ACCENT_DARK = "#00FF9C"
-ACCENT_LIGHT = "#007A5A"
+# Accents (revision B): RED — vivid crimson on dark, deep crimson on light.
+ACCENT_DARK = "#FF2D3D"
+ACCENT_LIGHT = "#C8102E"
 
 ASCII_ART = r""" ██████╗  █████╗   ██████╗ ██╗    ██╗ ███╗   ██╗ ███████╗ ██████╗
  ██╔══██╗ ██╔══██╗ ██╔════╝ ██║    ██║ ████╗  ██║ ██╔════╝ ██╔══██╗
