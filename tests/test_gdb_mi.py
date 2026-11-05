@@ -211,6 +211,9 @@ class TestGdbIntegration:
         assert int(stop["pc"], 16) > 0x400000
         assert int(stop["sp"], 16) > 0
         assert stop["frame"]["func"] == "main"
+        # names fetched after -file-exec-and-symbols → x86-64 flavor mappings
+        assert "$rip" in stop["regs"], "PC register named $rip (not stale i386 eip)"
+        assert "$rsp" in stop["regs"], "SP register named $rsp"
 
     def test_step_over_advances_pc(self, engine):
         engine, events = engine
