@@ -7,7 +7,7 @@ from __future__ import annotations
 import logging
 import logging.handlers
 
-from eightypwner.core.settings import log_dir
+from eightypwner.platform import log_dir
 
 
 def setup_logging(level: int = logging.INFO) -> None:

@@ -29,8 +29,17 @@ def main(argv: list[str] | None = None) -> int:
         print(VERSION_BANNER)
         return 0
 
+    import logging
+
+    import eightypwner.logging_setup as logging_setup
+    from eightypwner.platform.paths import migrate_legacy_config
+
+    logging_setup.setup_logging(getattr(logging, args.log_level.upper(), logging.INFO))
+    migrate_legacy_config()
+
     # GUI stack imports and their graceful failure (spec §8).
     try:
+        from PySide6.QtCore import Qt
         from PySide6.QtWidgets import QApplication
     except ImportError:
         print(
@@ -40,12 +49,6 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 2
-
-    import logging
-
-    import eightypwner.logging_setup as logging_setup
-
-    logging_setup.setup_logging(getattr(logging, args.log_level.upper(), logging.INFO))
 
     from eightypwner.core.event_bus import EventBus
     from eightypwner.core.session import SessionState
@@ -57,8 +60,18 @@ def main(argv: list[str] | None = None) -> int:
     from eightypwner.ui.theme import ThemeManager
 
     app = QApplication(sys.argv)
+    app.setStyle("Fusion")  # identical chrome on Windows/macOS/Linux (spec C)
+    # High-DPI: exact scaling at 100%/150%/200% (Qt6 auto-detect happens by
+    # default; the rounding policy avoids blurry fractional scaling).
+    if hasattr(Qt, "HighDpiScaleFactorRoundingPolicy"):
+        QApplication.setHighDpiScaleFactorRoundingPolicy(
+            Qt.HighDpiScaleFactorRoundingPolicy.PassThrough
+        )
     app.setApplicationName("80PWNER")
     app.setOrganizationName("The80")
+    from eightypwner.ui.fonts import load_bundled_fonts
+
+    load_bundled_fonts()
 
     settings = Settings()
     bus = EventBus()

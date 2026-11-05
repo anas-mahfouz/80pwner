@@ -1,11 +1,16 @@
 #!/usr/bin/env bash
-# 80PWNER launcher — by Anas Mahfouz (The80)
+# 80PWNER launcher (Linux/macOS) — by Anas Mahfouz (The80)
 # Usage: ./80pwner [--version] [options]
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Prefer an installed copy (pipx/pip); fall back to the source tree for dev runs.
+# Prefer the project virtualenv, then an installed copy (pipx/pip),
+# then fall back to system python with PYTHONPATH pointing at src/.
+if [[ -x "$DIR/.venv/bin/python" ]]; then
+    exec "$DIR/.venv/bin/python" -m eightypwner "$@"
+fi
+
 if ! python3 -c "import eightypwner" 2>/dev/null; then
     export PYTHONPATH="${PYTHONPATH:-}:$DIR/src"
 fi

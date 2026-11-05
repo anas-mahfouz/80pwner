@@ -16,6 +16,7 @@ keywords = ["ctf", "pwn", "binary", "reverse-engineering", "gdb", "gui"]
 
 dependencies = [
     "PySide6>=6.6",
+    "platformdirs>=4.0",
     # Engine backends are imported lazily; install the [analysis] extra for
     # full functionality (Steps 2-9 of the delivery plan).
 ]

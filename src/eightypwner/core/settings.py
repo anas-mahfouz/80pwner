@@ -1,6 +1,6 @@
 # 80PWNER — by Anas Mahfouz (The80)
 
-"""Application settings, persisted as JSON under ``~/.80pwner/settings.json``.
+"""Application settings, persisted as JSON in the platform config dir.
 
 Keys are dotted strings; unknown keys keep their defaults. Pure Python (no Qt)
 so it is trivially testable and usable from worker threads.
@@ -10,10 +10,15 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
+
+from eightypwner.platform import (  # re-exported for backwards compatibility
+    config_dir,
+    log_dir,  # noqa: F401
+    session_dir,  # noqa: F401
+)
 
 log = logging.getLogger(__name__)
 
@@ -28,16 +33,8 @@ DEFAULTS: dict[str, Any] = {
 }
 
 
-def config_dir() -> Path:
-    return Path(os.environ.get("EIGHTYPWNER_HOME", str(Path.home() / ".80pwner")))
-
-
 def settings_path() -> Path:
     return config_dir() / "settings.json"
-
-
-def log_dir() -> Path:
-    return config_dir() / "logs"
 
 
 class Settings:

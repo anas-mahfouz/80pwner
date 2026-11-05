@@ -1,6 +1,7 @@
 # 80PWNER — by Anas Mahfouz (The80)
 # Core (required, Step 1)
 PySide6>=6.6
+platformdirs>=4.0
 
 # Engines (required from Step 2 onwards; also available as the [analysis] extra)
 pwntools>=4.11

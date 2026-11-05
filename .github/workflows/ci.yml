@@ -1,0 +1,68 @@
+# 80PWNER CI — by Anas Mahfouz (The80)
+# Lint + tests + offscreen GUI smoke test on the three OSes.
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install .[dev]
+
+      - name: Lint (ruff)
+        run: ruff check src tests
+
+      - name: Tests (headless Qt)
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python -m pytest
+
+      - name: Smokescreen boot test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        shell: bash
+        run: |
+          python -m eightypwner --version
+          python - <<'EOF'
+          import sys
+          from PySide6.QtWidgets import QApplication
+          from eightypwner.core.event_bus import EventBus
+          from eightypwner.core.session import SessionState
+          from eightypwner.core.settings import Settings
+          from eightypwner.modules.interface import PluginContext
+          from eightypwner.modules.registry import PluginRegistry
+          from eightypwner.ui.main_window import MainWindow
+          from eightypwner.ui.theme import ThemeManager
+
+          app = QApplication([])
+          app.setStyle("Fusion")
+          settings = Settings()
+          theme = ThemeManager(settings)
+          ctx = PluginContext(bus=EventBus(), settings=settings, app_version="ci")
+          reg = PluginRegistry(ctx)
+          reg.load_builtins()
+          win = MainWindow(
+            EventBus(), theme, reg, SessionState(), settings
+          )
+          theme.toggle()
+          win.save_layout()
+          print("SMOKE OK on", sys.platform)
+          EOF
