@@ -6,7 +6,10 @@ from __future__ import annotations
 
 import contextlib
 import logging
+import sys
 from importlib import resources
+
+from eightypwner.ui import banner_font
 
 log = logging.getLogger(__name__)
 
@@ -37,12 +40,12 @@ BANNER_ASSET = "banner.txt"
 
 
 def load_banner_art() -> tuple[str, int]:
-    """(art, split_column) from the bundled asset; glyph art as fallback."""
+    """(art, split_column) from the bundled asset; bitmap font as fallback."""
     try:
         raw = resources.files("eightypwner.assets").joinpath(BANNER_ASSET).read_text(
             encoding="utf-8"
         )
-        split = 42  # sane default when the header comment is editable away
+        split = _banner_split_default()
         lines: list[str] = []
         for line in raw.splitlines():
             if line.startswith("#"):
@@ -56,140 +59,44 @@ def load_banner_art() -> tuple[str, int]:
         if lines:
             return "\n".join(lines), split
     except (OSError, ModuleNotFoundError):
-        log.warning("Bundled banner asset missing; using built-in glyph art")
-    return _glyph_fallback(APP_BANNER), 0
+        log.warning("Bundled banner asset missing; using built-in bitmap font")
+    return _glyph_fallback(APP_BANNER), _banner_split_default()
+
+
+def _banner_split_default() -> int:
+    return banner_font.left_cols(BANNER_LEFT)
 
 
 def ascii_banner(text: str = APP_BANNER) -> str:
-    """ASCII banner text; non-banner words use the tiny built-in glyph font."""
+    """ASCII banner text; non-banner words use the built-in bitmap font."""
     if text == APP_BANNER:
         return load_banner_art()[0]
     return _glyph_fallback(text)
 
 
 def _glyph_fallback(text: str) -> str:
-    """Tiny built-in block font, used only if the banner asset ever goes missing.
-    Every banner character must have a glyph; digits and '-' stay distinctive."""
-    lines = ["" for _ in range(7)]
-    for char in text:
-        glyph = _GLYPHS.get(char)
-        if glyph is None:
-            raise KeyError(f"No ASCII glyph for {char!r}")
-        lines = [line + "  " + cell for line, cell in zip(lines, glyph, strict=True)]
-    return "\n".join(line.rstrip() for line in lines)
+    """Built-in bitmap block font (banner_font.py — the banner's true source)."""
+    return banner_font.render_text(text, fill="#")
 
 
-# Fallback font (see _glyph_fallback): tiny 7-row block glyphs.
-_GLYPHS: dict[str, tuple[str, ...]] = {
-    " ": (
-        "      ",
-        "      ",
-        "      ",
-        "      ",
-        "      ",
-        "      ",
-        "      ",
-    ),
-    "-": (
-        "      ",
-        "      ",
-        "      ",
-        "######",
-        "      ",
-        "      ",
-        "      ",
-    ),
-    "T": (
-        "######",
-        "  ##  ",
-        "  ##  ",
-        "  ##  ",
-        "  ##  ",
-        "  ##  ",
-        "  ##  ",
-    ),
-    "H": (
-        "#    #",
-        "#    #",
-        "#    #",
-        "######",
-        "#    #",
-        "#    #",
-        "#    #",
-    ),
-    "E": (
-        "######",
-        "#     ",
-        "#     ",
-        "####  ",
-        "#     ",
-        "#     ",
-        "######",
-    ),
-    "0": (  # slashed zero — never confusable with '8' or 'O'
-        " #### ",
-        "#    #",
-        "#   ##",
-        "#  # #",
-        "# ## #",
-        "#    #",
-        " #### ",
-    ),
-    "8": (
-        " #### ",
-        "#    #",
-        "#    #",
-        " #### ",
-        "#    #",
-        "#    #",
-        " #### ",
-    ),
-    "P": (
-        "######",
-        "#    #",
-        "#    #",
-        "######",
-        "#     ",
-        "#     ",
-        "#     ",
-    ),
-    "W": (
-        "#    #",
-        "#    #",
-        "# ## #",
-        "# ## #",
-        "# ## #",
-        "##  ##",
-        "#    #",
-    ),
-    "N": (
-        "#    #",
-        "##   #",
-        "# #  #",
-        "#  # #",
-        "#   ##",
-        "#    #",
-        "#    #",
-    ),
-    "R": (
-        "######",
-        "#    #",
-        "#    #",
-        "######",
-        "#  #  ",
-        "#   # ",
-        "#    #",
-    ),
-    "_": (
-        "      ",
-        "      ",
-        "      ",
-        "      ",
-        "      ",
-        "      ",
-        "######",
-    ),
-}
+def terminal_banner(banner: str | None = None) -> str:
+    """CLI-safe banner: maps glyphs a terminal cannot print to ASCII ("#").
+
+    Checks whether the current stdout encoding can represent the full-block
+    character; on failure (or unknown codecs) replaces it with "#".
+    """
+    text = banner if banner is not None else VERSION_BANNER
+    encoding = (getattr(sys.stdout, "encoding", None) or "utf-8").lower()
+    try:
+        "█".encode(encoding)
+    except (LookupError, UnicodeEncodeError):
+        text = text.replace("█", "#")
+        text = text.replace("—", "-")
+    return text
+
+
+# (The bitmap glyph table lives in eightypwner/ui/banner_font.py —
+# the single source of truth also used by tools/gen_banner.py.)
 
 ASCII_ART = ascii_banner()  # module-level so `--version` output stays stable
 

@@ -1,173 +1,160 @@
 # 80PWNER — by Anas Mahfouz (The80)
-#
-"""Banner tests: figlet asset legible, two-tone rendering, no clipping offscreen."""
+
+"""Banner tests — bitmap block font (banner_font.py), asset, CLI fallback.
+
+The banner is a hand-designed 5x7 cell bitmap font rendered by QPainter; the
+text asset (assets/banner.txt) and the CLI --version output must match it
+exactly. The glyph grid is printed to the test console for visual review.
+"""
 
 from __future__ import annotations
 
-import math
+import itertools
+import sys
 from pathlib import Path
 
 import pytest
-from PySide6.QtGui import QColor, QImage
 
-from eightypwner.constants import load_banner_art
-from eightypwner.ui.banner import AsciiBannerWidget, ascii_banner_pixmap, fit_px
+from eightypwner.constants import (
+    APP_BANNER,
+    BANNER_LEFT,
+    VERSION_BANNER,
+    load_banner_art,
+    terminal_banner,
+)
+from eightypwner.ui import banner_font as bf
 
 ASSET = Path(__file__).resolve().parents[1] / "src" / "eightypwner" / "assets" / "banner.txt"
-DOCS = Path(__file__).resolve().parents[1] / "docs"
+
+EXPECTED_COLS = bf.glyph_cols(len(APP_BANNER))  # 11 glyphs → 65 columns
 
 
-def _art_lines() -> list[str]:
-    art, _ = load_banner_art()
-    return art.splitlines()
-
-
-def _count_colors(image: QImage) -> int:
-    return len({
-        QColor(image.pixel(x, y)).name()
-        for x in range(0, image.width(), 5)
-        for y in range(0, image.height(), 3)
-    })
-
-
-def test_asset_exists_and_wellformed():
-    assert ASSET.is_file(), "assets/banner.txt must exist"
-    _art, split = load_banner_art()
-    lines = _art_lines()
-    assert lines, "banner asset non-empty"
-    assert split >= 1, "two-tone split column present"
-    # equal column count on all rows (figlet output is a rectangle)
-    widths = {len(line) for line in lines}
-    assert len(widths) == 1
-    # include only printable banner glyphs — squares/hyphens, no replacement chars
-    assert all("�" not in line for line in lines)
-
-
-@pytest.mark.skipif(not ASSET.is_file(), reason="banner asset missing")
-def test_asset_matches_pyfiglet_regeneration():
-    pytest.importorskip("pyfiglet", reason="dev-only regeneration check")
-    import pyfiglet
-
-    art = pyfiglet.figlet_format("THE80-PWNER", font="ansi_shadow", width=512)
-    regenerated = art.rstrip()
-    asset_lines = [
+def _asset_lines() -> list[str]:
+    return [
         line
         for line in ASSET.read_text(encoding="utf-8").splitlines()
         if not line.startswith("#")
     ]
-    assert "\n".join(asset_lines) == regenerated, (
-        "banner asset drifted from the pyfiglet source — run tools/gen_banner.py"
+
+
+# ------------------------------------------------------------------ glyphs
+def test_glyphs_are_wellformed():
+    for char, rows in bf.GLYPHS.items():
+        assert len(rows) == bf.GLYPH_H, f"{char!r}: {len(rows)} rows"
+        assert all(len(row) == bf.GLYPH_W for row in rows), f"{char!r}: width"
+        assert all(set(row) <= {"#", " "} for row in rows), f"{char!r}: cells"
+
+
+def test_glyph_bitmaps_all_unique():
+    """No two glyphs share a bitmap (checked visually in the printed dump)."""
+    bitmaps = {char: bf.glyph_bitmap(char) for char in bf.GLYPHS}
+    for a_char, b_char in itertools.combinations(bitmaps, 2):
+        assert bitmaps[a_char] != bitmaps[b_char], (
+            f"{a_char!r} and {b_char!r} have identical bitmaps"
+        )
+
+
+def test_glyph_expected_width_and_dump(capsys):
+    """The full banner text has the expected width; dump the art for review."""
+    art = bf.render_text(APP_BANNER, fill="#")
+    lines = art.splitlines()
+    print()
+    print(art)
+    captured = capsys.readouterr()
+    assert "#####" in captured.out, "art dumped to the test console for review"
+
+    assert len(lines) == bf.GLYPH_H
+    assert all(len(line) == EXPECTED_COLS for line in lines), "each row spans 65 cols"
+    assert EXPECTED_COLS == 65
+    # two-tone split: left half is exactly the 'THE80' span
+    assert bf.left_cols(BANNER_LEFT) == len(BANNER_LEFT) * (bf.GLYPH_W + bf.GLYPH_GAP)
+
+
+def test_8_and_0_visually_distinct():
+    """8 = two closed loops + middle bar; 0 = slashed oval, no middle bar."""
+    eight = bf.GLYPHS["8"]
+    zero = bf.GLYPHS["0"]
+    # closed side walls on the loop body rows (8's row 3 is its middle bar)
+    for row in (eight[1], eight[2], eight[4], eight[5], zero[3]):
+        assert row[0] == "#" and row[-1] == "#", "loops closed left/right"
+    # zero's own loop rows are closed too (1, 2, 4, 5 — row 3 checked above)
+    for row in (zero[1], zero[2], zero[4], zero[5]):
+        assert row[0] == "#" and row[-1] == "#", "0 loops closed"
+    # 8's middle bar is a full interior run; 0 never has one
+    assert eight[3].strip() == "###", "8 middle bar"
+    assert zero[3].strip() != "###", "0 has no middle bar"
+    # 0 carries the interior slash (lit cells strictly inside the walls)
+    assert zero[2][3] == "#" and zero[3][2] == "#" and zero[4][1] == "#", (
+        "0 slash inside the oval"
+    )
+    assert eight[2][3] == " " and eight[4][1] == " ", "8 has no slash"
+    assert zero[0].strip() == "###" and zero[6].strip() == "###", "0 closed oval top/bottom"
+
+
+def test_hyphen_and_space_blanks():
+    hyphen = bf.glyph_bitmap("-")
+    blank = bf.glyph_bitmap(" ")
+    assert not any(any(row) for row in blank), "space is empty"
+    lit_rows = [i for i, row in enumerate(hyphen) if any(row)]
+    assert lit_rows == [3], "hyphen is a single middle bar"
+
+
+def test_unknown_char_rejected():
+    with pytest.raises(KeyError):
+        bf.glyph_bitmap("%")
+
+
+# ------------------------------------------------------------------- asset
+def test_asset_matches_bitmap_font():
+    assert ASSET.is_file(), "assets/banner.txt must exist"
+    assert "\n".join(_asset_lines()) == bf.render_text(APP_BANNER, fill="█"), (
+        "banner asset drifted from banner_font.py — run tools/gen_banner.py"
     )
 
 
-def test_cli_version_art_is_the_asset():
-    from eightypwner.constants import ASCII_ART, VERSION_BANNER
-
-    assert ASCII_ART in VERSION_BANNER
-    assert ASCII_ART.splitlines()[0] == _art_lines()[0]
-
-
-@pytest.mark.parametrize("mode", ["dark", "light"])
-def test_banner_pixmap_renders_two_tone(qtbot, tmp_path, monkeypatch, mode):
-    monkeypatch.setenv("EIGHTYPWNER_HOME", str(tmp_path))
-    from eightypwner.ui.theme import DARK_TOKENS, LIGHT_TOKENS
-
-    tokens = DARK_TOKENS if mode == "dark" else LIGHT_TOKENS
-
-    pixmap = ascii_banner_pixmap(760, tokens)
-    image = pixmap.toImage()
-    assert not image.isNull()
-    assert image.width() >= 300, "sane art width at 760px viewport"
-    assert _count_colors(image) > 2, f"{mode}: art painted over background"
+def test_asset_recorded_split_matches_font():
+    art, split = load_banner_art()
+    assert art == bf.render_text(APP_BANNER, fill="█")
+    assert split == bf.left_cols(BANNER_LEFT), "split column must match the font"
 
 
-def _make_widget(qtbot, mode, width=760):
-    from eightypwner.ui.theme import DARK_TOKENS, LIGHT_TOKENS
+def test_load_banner_art_fallback_without_asset(monkeypatch):
+    import eightypwner.constants as c
 
-    tokens = DARK_TOKENS if mode == "dark" else LIGHT_TOKENS
-    widget = AsciiBannerWidget(tokens)
-    widget.resize(width, 200)
-    qtbot.addWidget(widget)
-    return widget
-
-
-@pytest.mark.parametrize("mode", ["dark", "light"])
-def test_banner_widget_autofit_and_no_clip(qtbot, tmp_path, monkeypatch, mode):
-    monkeypatch.setenv("EIGHTYPWNER_HOME", str(tmp_path))
-    lines = _art_lines()
-    cols = len(lines[0])
-
-    widget = _make_widget(qtbot, mode, width=760)
-    widget._px = fit_px(760, cols)
-    natural = widget.natural_size(widget._px)
-    assert natural.width() <= 760, "full art fits the viewport width (auto-scale)"
-
-    image = widget.grab().toImage()
-    assert not image.isNull()
-    assert _count_colors(image) > 2
-
-    # no clipping: every figlet row paints visible glyph pixels inside the
-    # art's own span (the widget is wider than the art and centers it).
-    natural = widget.natural_size(widget._px)
-    natural_w, natural_h = natural.width(), natural.height()
-    x0 = max((widget.width() - natural_w) // 2, 0)
-    row_h = natural_h // len(lines)
-    top = max((widget.height() - natural_h) // 2, 0)
-    for row in range(len(lines)):
-        y = min(int(top + row * row_h + row_h / 2), image.height() - 1)
-        colors = {
-            QColor(image.pixel(x, y)).name()
-            for x in range(x0, min(x0 + natural_w, image.width() - 1), 2)
-        }
-        assert len(colors) > 1, f"{mode}: figlet row {row} painted (no clip)"
+    monkeypatch.setattr(
+        c.resources, "files", lambda *_a, **_k: (_ for _ in ()).throw(OSError("gone"))
+    )
+    art, split = c.load_banner_art()
+    assert art == bf.render_text(APP_BANNER, fill="#"), "fallback uses bitmap font"
+    assert split == bf.left_cols(BANNER_LEFT)
 
 
-def test_narrow_falls_back_to_scroll_geometry(qtbot, tmp_path, monkeypatch):
-    monkeypatch.setenv("EIGHTYPWNER_HOME", str(tmp_path))
-    # the widget has an explicit minimum art width (scroll fallback): at a
-    # 120px-wide viewport the art cannot fit ≥ MIN_PX, so it stays wide.
-    widget = _make_widget(qtbot, "dark", width=120)
-    assert widget.render_target() > 120, "art wider than the viewport → scrollable"
+# --------------------------------------------------------------------- CLI
+def test_version_banner_embeds_art():
+    assert "=" not in VERSION_BANNER
+    assert "█████" in VERSION_BANNER, "CLI art uses the display font"
+    assert APP_BANNER in VERSION_BANNER
+    assert "Anas Mahfouz (The80)" in VERSION_BANNER
 
 
-def test_banner_screenshot_saved_to_docs(qtbot, tmp_path, monkeypatch):
-    monkeypatch.setenv("EIGHTYPWNER_HOME", str(tmp_path))
-    from eightypwner.ui.theme import DARK_TOKENS
+def test_terminal_banner_ascii_fallback(monkeypatch):
+    class _AsciiStdout:
+        encoding = "ascii"
 
-    pixmap = ascii_banner_pixmap(760, DARK_TOKENS)
-    DOCS.mkdir(exist_ok=True)
-    ok = pixmap.toImage().save(str(DOCS / "banner.png"))
-    assert ok and (DOCS / "banner.png").exists()
+    monkeypatch.setattr(sys, "stdout", _AsciiStdout())
+    safe = terminal_banner(VERSION_BANNER)
+    assert "█" not in safe and "#" in safe, "█ mapped to # for ascii stdout"
+    assert "—" not in safe and "- An Integrated" in safe, "em-dash also degraded"
 
+    class _Utf8Stdout:
+        encoding = "utf-8"
 
-def test_theme_tokens_two_tone_colors_differ():
-    from eightypwner.ui.theme import DARK_TOKENS, LIGHT_TOKENS
-
-    for tokens in (DARK_TOKENS, LIGHT_TOKENS):
-        assert tokens["accent"] != tokens["accent_pressed"]
-        assert _relative_lum(tokens["accent"]) > 0
+    monkeypatch.setattr(sys, "stdout", _Utf8Stdout())
+    assert terminal_banner(VERSION_BANNER) is VERSION_BANNER, "utf-8 keeps the art"
 
 
-def _relative_lum(hex_color: str) -> float:
-    """WCAG luminance of a #RRGGBB color."""
-    value = hex_color.lstrip("#")
-    rgb = [int(value[i : i + 2], 16) / 255.0 for i in (0, 2, 4)]
-    linear = [c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in rgb]
-    return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2]
-
-
-def test_contrast_of_banner_shades_on_both_backgrounds():
-    from eightypwner.ui.theme import DARK_TOKENS, LIGHT_TOKENS
-
-    def ratio(a: str, b: str) -> float:
-        la, lb = _relative_lum(a), _relative_lum(b)
-        lighter, darker = max(la, lb), min(la, lb)
-        return (lighter + 0.05) / (darker + 0.05)
-
-    # large/text art: WCAG ≥ 3:1 against the panel background in both themes
-    for tokens in (DARK_TOKENS, LIGHT_TOKENS):
-        assert ratio(tokens["accent"], tokens["bg"]) >= 3.0, "left shade contrast"
-        assert ratio(tokens["accent_pressed"], tokens["bg"]) >= 3.0, "right shade contrast"
-        assert (ratio(tokens["accent"], tokens["accent_pressed"]) >= 1.15 or math.isclose(
-            ratio(tokens["accent"], tokens["accent_pressed"]), 1.15, rel_tol=0.4
-        )), "two shades visually distinct from each other"
+def test_cli_version_output_matches_asset():
+    """`--version`'s art line shape = asset rows (same renderer)."""
+    art_lines = _asset_lines()
+    version_lines = VERSION_BANNER.splitlines()
+    assert version_lines[: len(art_lines)] == art_lines

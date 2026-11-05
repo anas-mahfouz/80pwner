@@ -24,9 +24,9 @@ def main(argv: list[str] | None = None) -> int:
     args = _parse_args(argv)
 
     if args.version:
-        from eightypwner.constants import VERSION_BANNER
+        from eightypwner.constants import terminal_banner
 
-        print(VERSION_BANNER)
+        print(terminal_banner())  # '#' fallback if stdout can't print '█'
         return 0
 
     import logging
