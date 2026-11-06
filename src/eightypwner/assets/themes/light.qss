@@ -33,7 +33,7 @@ QToolBar::separator { width: 1px; background: ${border}; margin: 4px; }
 QToolButton:hover { color: ${accent_hover}; }
 
 /* ---- docks --------------------------------------------------------------- */
-QDockWidget { color: ${fg}; }
+QDockWidget { color: ${fg}; background: ${bg}; }
 QDockWidget::title {
     background: ${panel_alt};
     border-bottom: 2px solid ${accent_dim};
@@ -98,6 +98,8 @@ QLabel[role="brandFooter"]:hover { color: ${accent_hover}; }
 
 /* Table "current row / selection" highlights in accent */
 QTableView, QTreeView, QListView {
+    color: ${fg};
+    background: ${panel};
     selection-background-color: ${accent};
     selection-color: ${on_accent};
     alternate-background-color: ${panel_alt};
