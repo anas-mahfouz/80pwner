@@ -39,7 +39,7 @@ def main(argv: list[str] | None = None) -> int:
 
     # GUI stack imports and their graceful failure (spec §8).
     try:
-        from PySide6.QtCore import Qt
+        from PySide6.QtCore import QLocale, Qt
         from PySide6.QtWidgets import QApplication
     except ImportError:
         print(
@@ -65,6 +65,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     app = QApplication(sys.argv)
     app.setStyle("Fusion")  # identical look on Windows/macOS/Linux (spec C)
+    # LC_NUMERIC may point at a locale with non-Latin digits (e.g. ar_EG);
+    # QSpinBox/QComboBox localize their values and would render '١٢٠' — pin
+    # the Qt locale so all numerals stay ASCII in every widget.
+    QLocale.setDefault(QLocale.c())
     app.setApplicationName("80PWNER")
     app.setOrganizationName("The80")
     from eightypwner.ui.fonts import load_bundled_fonts

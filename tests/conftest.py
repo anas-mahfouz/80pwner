@@ -13,3 +13,11 @@ if str(SRC) not in sys.path:
 
 # Tests get an isolated config dir so real user settings are never touched.
 os.environ.setdefault("EIGHTYPWNER_HOME", "/tmp/80pwner-tests")
+
+# Pin the Qt locale: LC_NUMERIC may point at a digit-localized region
+# (e.g. ar_EG) and then every QSpinBox renders '١٢٠' instead of '120'
+# even though QLineEdit stays ASCII. Mirrors cli.py's startup pin.
+if os.environ.get("LC_NUMERIC", "").startswith("ar"):
+    from PySide6.QtCore import QLocale
+
+    QLocale.setDefault(QLocale.c())
