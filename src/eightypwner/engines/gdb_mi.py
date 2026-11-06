@@ -31,6 +31,7 @@ import signal
 import sys
 import threading
 import time
+from collections import deque
 from collections.abc import Callable
 from contextlib import suppress
 from dataclasses import dataclass
@@ -66,6 +67,14 @@ T_MEMORY_READ = "debugger_memory_read"
 T_REGISTERS = "debugger_registers"
 T_BACKTRACE = "debugger_backtrace"
 T_STACK_WORDS = "debugger_stack_words"
+
+# emitted when a queued -data-evaluate-expression resolves (worker → UI)
+T_EVAL = "debugger_eval"  # {"expr": str, "value": str, "error": str?}
+
+# request topics (UI → whoever owns the engine — DebuggerPlugin routes them)
+T_STACK_CONTEXT_REQUEST = "stack_context_request"  # {"level": ..., "window": bytes}
+T_STACK_EVAL_REQUEST = "stack_eval_request"  # {"expr": str}
+T_MEMORY_GOTO_REQUEST = "memory_goto_request"  # {"address": int, "size": int?}
 
 
 class GdbEngineError(Exception):
@@ -128,6 +137,9 @@ class GdbEngine:
         self._pty_slave: int | None = None
         self._pty_reader: threading.Thread | None = None
         self._boot_plan: dict[str, Any] | None = None
+        # queued -data-evaluate-expression calls awaiting their ^done/^error;
+        # FIFO matches pygdbmi's ordered response stream (worker thread only)
+        self._eval_queue: deque[str] = deque()
 
     # ------------------------------------------------------------------- API
     @property
@@ -249,6 +261,43 @@ class GdbEngine:
         """*count* quadwords around $sp (8 bytes each side is covered)."""
         window = (count // 2 + 1) * 8
         self.queued(f'-data-read-memory-bytes "($sp - {window})" {window * 2}')
+
+    def read_stack_window(self, total: int = 1024) -> None:
+        """Read a *total*-byte window centered on the selected frame's $sp.
+
+        Used by the stack visualizer: a large window covers saved locals and
+        caller arguments in one MI round-trip. Whole words only.
+        """
+        total = max(int(total) // 8 * 8, 16)
+        self.queued(f'-data-read-memory-bytes "($sp - {total // 2})" {total}')
+
+    def stack_context(self, level: int = 0, window: int = 1024) -> None:
+        """Select frame *level* and announce its registers + SP stack window.
+
+        $sp/$fp expressions and any following reads evaluate in the context
+        of the newly selected frame, so this must precede visualizer reads.
+        """
+        self.queued(f"-stack-select-frame {int(level)}")
+        self.read_registers()
+        self.read_stack_window(window)
+
+    def evaluate(self, expr: str) -> None:
+        """Queued expression evaluation; the answer arrives as ``T_EVAL``.
+
+        Synchronous callers use :meth:`_evaluate` (worker thread only);
+        this is the UI/other-thread-safe variant. Results are correlated
+        FIFO: pygdbmi delivers MI responses in order, so the next
+        ``^done,value=``/``^error`` record belongs to the oldest queued
+        expression.
+        """
+        expr = str(expr or "").strip()
+        if not expr:
+            return
+        if self._thread is None or not self._thread.is_alive():
+            self._emit(T_ERROR, {"message": "Debugger is not running"})
+            return
+        self._eval_queue.append(expr)
+        self.queued(f"-data-evaluate-expression {_mi_quote(expr)}")
 
     def backtrace(self) -> None:
         self.queued("-stack-list-frames")
@@ -501,6 +550,7 @@ class GdbEngine:
 
     def _on_gdb_died(self, exc: Exception) -> None:
         log.warning("gdb died: %s", exc)
+        self._eval_queue.clear()
         self._set_state("exited")
         self._emit(T_DIED, {"error": str(exc)})
 
@@ -522,6 +572,10 @@ class GdbEngine:
         payload = record.get("payload")
         if cls == "error":
             message = payload if isinstance(payload, str) else str(payload)
+            # a failed eval must not poison the FIFO for later evals
+            if self._eval_queue:
+                expr = self._eval_queue.popleft()
+                self._emit(T_EVAL, {"expr": expr, "value": "", "error": message})
             self._emit(T_ERROR, {"message": message, "from_gdb": True})
             return
         if not isinstance(payload, dict):
@@ -539,7 +593,12 @@ class GdbEngine:
             self._announce_registers(self._map_registers(payload["register-values"]))
         if "memory" in payload and isinstance(payload["memory"], list) and payload["memory"]:
             self._announce_memory(payload["memory"][0])
-        if "value" in payload:
+        if "value" in payload and self._eval_queue:
+            # matches the oldest queued -data-evaluate-expression (FIFO)
+            expr = self._eval_queue.popleft()
+            self._emit(T_EVAL, {"expr": expr, "value": str(payload["value"])})
+            log.debug("gdb eval %r = %r", expr, payload["value"])
+        elif "value" in payload:
             log.debug("gdb value: %r", payload["value"])
         if "stack" in payload:
             frames: list[dict[str, Any]] = []
@@ -633,6 +692,7 @@ class GdbEngine:
             return
         self._state = "exited"
         self._inferior_pid = None
+        self._eval_queue.clear()
         code = str(payload.get("exit-code", ""))
         if not code:
             code = self._evaluate("$_exitcode")

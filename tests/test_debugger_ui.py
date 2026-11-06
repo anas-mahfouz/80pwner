@@ -298,3 +298,45 @@ def _rip_row(table) -> int:
         if item is not None and item.text() == "$rip":
             return row
     return 0
+
+
+# ------------------------------------------- Step 5: visualizer request topics
+class _Step5Engine:
+    """Captures stack-context/eval/memory-goto requests from other modules."""
+
+    def __init__(self):
+        self.calls: list[tuple[str, ...]] = []
+
+    def stack_context(self, level, window):
+        self.calls.append(("context", level, window))
+
+    def evaluate(self, expr):
+        self.calls.append(("eval", expr))
+
+    def read_memory(self, address, size):
+        self.calls.append(("memory", address, size))
+
+
+def test_step5_request_topics_route_to_engine(plugin, qtbot):
+    ctx = plugin.ctx
+    engine = _Step5Engine()
+    plugin._engine = engine  # type: ignore[assignment]
+
+    ctx.bus.publish("stack_context_request", {"level": 2, "window": 1024})
+    ctx.bus.publish("stack_eval_request", {"expr": "&main"})
+    ctx.bus.publish("memory_goto_request", {"address": "0x401000", "size": 32})
+    qtbot.waitUntil(lambda: len(engine.calls) == 3)
+
+    assert ("context", 2, 1024) in engine.calls
+    assert ("eval", "&main") in engine.calls
+    assert ("memory", 0x401000, 32) in engine.calls
+
+
+def test_step5_requests_without_engine_are_noops(plugin, qtbot):
+    ctx = plugin.ctx
+    plugin._engine = None  # type: ignore[assignment]
+    # must not raise and must not touch the status line with an error
+    ctx.bus.publish("stack_context_request", {"level": 0, "window": 1024})
+    ctx.bus.publish("stack_eval_request", {"expr": "&main"})
+    ctx.bus.publish("memory_goto_request", {"address": 16})  # int address, default size
+    qtbot.wait(50)  # let the queued events land

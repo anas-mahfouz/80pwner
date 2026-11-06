@@ -52,10 +52,13 @@ from eightypwner.engines.gdb_mi import (
     T_DIED,
     T_ERROR,
     T_EXITED,
+    T_MEMORY_GOTO_REQUEST,
     T_MEMORY_READ,
     T_OUTPUT,
     T_PROGRAM_OUTPUT,
     T_REGISTERS,
+    T_STACK_CONTEXT_REQUEST,
+    T_STACK_EVAL_REQUEST,
     T_STACK_WORDS,
     T_STARTED,
     T_STATE,
@@ -566,6 +569,26 @@ class DebuggerPlugin(Plugin):
                 with contextlib.suppress(TypeError, ValueError):
                     address = int(payload.get("address", 0))
                     self._engine.toggle_breakpoint(address)
+            return
+        if topic == T_STACK_CONTEXT_REQUEST and isinstance(payload, dict):
+            # stack visualizer: select a frame + refresh registers/stack window
+            if self._engine is not None:
+                with contextlib.suppress(TypeError, ValueError):
+                    level = int(payload.get("level", 0))
+                    window = int(payload.get("window", 1024))
+                    self._engine.stack_context(level, window)
+            return
+        if topic == T_STACK_EVAL_REQUEST and isinstance(payload, dict):
+            if self._engine is not None:
+                self._engine.evaluate(str(payload.get("expr", "")))
+            return
+        if topic == T_MEMORY_GOTO_REQUEST and isinstance(payload, dict):
+            if self._engine is not None:
+                with contextlib.suppress(TypeError, ValueError):
+                    raw = payload.get("address", 0)
+                    address = int(raw, 0) if isinstance(raw, str) else int(raw)
+                    size = int(payload.get("size", 0) or 0) or 256
+                    self._read_memory_view(address, size)
             return
 
         if topic == T_ERROR and isinstance(payload, dict):

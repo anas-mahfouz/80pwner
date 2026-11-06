@@ -7,7 +7,9 @@ is missing) plus mocked error paths (gdb missing at boot, crashes, timeouts).
 from __future__ import annotations
 
 import shutil
+import threading
 import time
+from collections import deque
 from pathlib import Path
 from typing import Any
 
@@ -313,3 +315,100 @@ class TestGdbIntegration:
 
 def test_command_timeout_sane():
     assert 1.0 <= COMMAND_TIMEOUT <= 60.0
+
+
+# -------------------------------------------- Step 5: eval queue + FIFO match
+def test_evaluate_without_running_engine_errors(fake_env):
+    engine, events = fake_env
+    engine.evaluate("&main")
+    topics = [name for name, _ in events]
+    assert topics.count("debugger_error") == 1
+    assert not engine._eval_queue  # nothing queued for the dead session
+
+
+def test_evaluate_queues_when_worker_alive(fake_env):
+    engine, _ = fake_env
+    started, release = threading.Event(), threading.Event()
+    worker = threading.Thread(target=lambda: (started.set(), release.wait(5)))
+    worker.start()
+    try:
+        assert started.wait(5)
+        engine._thread = worker  # engine is "running"
+        engine.evaluate("&main")
+        engine.evaluate("$sp")
+        assert list(engine._eval_queue) == ["&main", "$sp"]
+    finally:
+        release.set()
+        worker.join()
+    drained = [engine._cmd_queue.get_nowait() for _ in range(engine._cmd_queue.qsize())]
+    assert drained == [
+        '-data-evaluate-expression "&main"',
+        '-data-evaluate-expression "$sp"',
+    ]
+    engine._eval_queue.clear()
+
+
+def test_empty_evaluate_is_ignored(fake_env):
+    engine, events = fake_env
+    engine.evaluate("   ")
+    assert engine._eval_queue == deque()
+    assert not _wait(events, "debugger_error", 0.2)
+
+
+def test_dispatch_matches_value_to_queued_eval_fifo(fake_env):
+    engine, events = fake_env
+    engine._eval_queue.extend(["&main", "$sp"])
+    engine._dispatch(
+        [
+            {
+                "type": "result",
+                "message": "done",
+                "payload": {"value": "0x4011bf"},
+            },
+            {
+                "type": "result",
+                "message": "done",
+                "payload": {"value": "0x7ffc00000000"},
+            },
+        ]
+    )
+    evals = _wait(events, "debugger_eval", 0.2, count=2)
+    assert evals is not None
+    # FIFO: first value pairs with the first queued expression
+    assert (evals[0]["expr"], evals[0]["value"]) == ("&main", "0x4011bf")
+    assert (evals[1]["expr"], evals[1]["value"]) == ("$sp", "0x7ffc00000000")
+    assert not engine._eval_queue
+
+
+def test_dispatch_drains_eval_on_error_result(fake_env):
+    engine, events = fake_env
+    engine._eval_queue.append("&main")
+    engine._dispatch(
+        [{"type": "result", "message": "error", "payload": "value not available"}]
+    )
+    evals = _wait(events, "debugger_eval", 0.2)
+    assert evals is not None
+    assert evals[0]["expr"] == "&main"
+    assert evals[0]["value"] == ""
+    assert evals[0]["error"] == "value not available"
+    assert not engine._eval_queue
+
+
+class TestStep5Tooling:
+    """stack_context / read_stack_window queue the right MI sequence."""
+
+    def test_stack_context_sequence(self, fake_env, monkeypatch):
+        engine, _ = fake_env
+        sent: list[str] = []
+        monkeypatch.setattr(engine, "queued", lambda command: sent.append(command))
+        engine.stack_context(2, 1024)
+        assert sent[0] == "-stack-select-frame 2"
+        assert "-data-list-register-names" in sent
+        assert '-data-read-memory-bytes "($sp - 512)" 1024' in sent
+
+    def test_read_stack_window_whole_words(self, fake_env, monkeypatch):
+        engine, _ = fake_env
+        sent: list[str] = []
+        monkeypatch.setattr(engine, "queued", lambda command: sent.append(command))
+        engine.read_stack_window(1000)
+        assert sent == ['-data-read-memory-bytes "($sp - 500)" 1000']
