@@ -19,7 +19,7 @@ every module works on the same target and stays synchronized.
 > Educational + CTF use (pwn.college, picoCTF, HackTheBox, local labs).
 > Analyze and debug binaries you own or are authorized to test.
 
-## Features (build status: Step 4 of 10 ✅)
+## Features (build status: Step 5 of 10 ✅)
 
 - **Theme system** — Dark / Light / follow-system, persisted; red accent
   (#FF2D3D dark / #C8102E light); semantic colors stay separate so checksec
@@ -49,6 +49,20 @@ every module works on the same target and stays synchronized.
   F11 step into, Shift+F11 finish; the disassembly view follows the debugger:
   current-instruction marking, navigation to the stop address and breakpoint
   marks; clean shutdown kills gdb + the debuggee (no orphans)
+- **Stack Visualizer (live frame diagram)** — a vertical diagram of the
+  selected debuggee frame with high addresses on top: return address, saved
+  RBP, stack canary (checksec + `fs:0x28`/`gs:0x14` disassembly pattern +
+  heuristic), locals/buffers (DWARF when built with `-g`, else inferred from
+  `sub rsp` / `[rbp-X]` references), and on-demand filler rows for unknown
+  bytes. Each row shows its address, RBP/RSP-relative offsets, size, raw
+  value and a pointer/ASCII annotation (symbol±offset with the PIE runtime
+  delta; double-click a pointer to follow it into the Memory view). The
+  "buffer start → canary / saved RBP / return address" distances recompute on
+  every stop and copy with one click; changed stack words highlight in the
+  accent color; a frame selector walks the backtrace; x86-64 and x86 (32-bit)
+  first — other architectures show a clear explanation instead of crashing;
+  frame-pointerless builds degrade to a raw SP word-dump with a
+  `-fno-omit-frame-pointer` note
 - Cross-platform: platformdirs paths (+ auto-migration from `~/.80pwner`),
   bundled JetBrains Mono (OFL), Fusion Qt style, high-DPI scaling
 
