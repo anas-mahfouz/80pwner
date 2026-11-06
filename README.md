@@ -19,7 +19,7 @@ every module works on the same target and stays synchronized.
 > Educational + CTF use (pwn.college, picoCTF, HackTheBox, local labs).
 > Analyze and debug binaries you own or are authorized to test.
 
-## Features (build status: Step 5 of 10 ✅)
+## Features (build status: Step 6 of 10 ✅)
 
 - **Theme system** — Dark / Light / follow-system, persisted; red accent
   (#FF2D3D dark / #C8102E light); semantic colors stay separate so checksec
@@ -63,6 +63,27 @@ every module works on the same target and stays synchronized.
   first — other architectures show a clear explanation instead of crashing;
   frame-pointerless builds degrade to a raw SP word-dump with a
   `-fno-omit-frame-pointer` note
+- **Gadget Finder (x86/x86-64 ROP/JOP)** — scans the loaded binary plus any
+  extra module you load (libc.so.6, …) for gadgets ending in `ret`,
+  `ret imm16`, `jmp reg`, `call reg`, `syscall` and `int 0x80`; the classic
+  two-phase scan (byte-pattern terminators, then walk-back decoding that
+  keeps only whole-instruction chains) runs in a worker thread with live
+  progress + cancellation (partial results kept). Filter by registers,
+  instruction regex, max length, bad bytes (excluded from gadget bytes AND
+  both little-endian address encodings) and ending kinds; sortable results
+  table with search-as-you-type; one-click copy of the address as `p64` /
+  `p32` / raw hex / gadget bytes / gadget text (double-click = p64).
+  Executable scan ranges come from x-flagged LOAD segments ∩ PROGBITS
+  sections (16 MB cap with a note); non-x86 binaries say so instead of
+  crashing; per-module caches invalidate on binary reload
+- **Pattern Tool (cyclic patterns + crash offset)** — pwntools-compatible
+  de Bruijn pattern generator (`aaaabaaacaaadaaaeaaa`, n=2..8, up to 2 MB,
+  verified against pwnlib's doctests) with one-click copy; find the crash
+  offset from `0x…` hex, decimal, byte pairs (`61 61 61 62`) or the ASCII
+  chunk (`baaa`); a live register dropdown fills the lookup from the
+  stopped debugger, and a crash stop (SIGSEGV/SIGBUS/SIGILL/SIGFPE)
+  automatically scans the register dump byte-windows and proposes the
+  smallest matching offset
 - Cross-platform: platformdirs paths (+ auto-migration from `~/.80pwner`),
   bundled JetBrains Mono (OFL), Fusion Qt style, high-DPI scaling
 
@@ -141,9 +162,9 @@ pytest                    # headless (offscreen Qt by default)
 1. ✅ Scaffold, theme manager, main window, branding, plugin system
 2. ✅ Binary Overview + checksec (+ samples)
 3. ✅ Disassembler + function list (Capstone)
-4. GDB/MI integration + Debugger GUI
-5. Stack Visualizer
-6. Gadget Finder + Pattern Tool
+4. ✅ GDB/MI integration + Debugger GUI
+5. ✅ Stack Visualizer
+6. ✅ Gadget Finder + Pattern Tool
 7. CFG + Libc helper
 8. Heap Visualizer
 9. Script Generator + Notes/Session Manager
