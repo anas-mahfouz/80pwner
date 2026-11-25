@@ -68,9 +68,16 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: |
-          $out = & "dist/80pwner/80pwner.exe" --version
-          if ($LASTEXITCODE -ne 0) { throw "80pwner.exe --version failed" }
-          if ($out -notmatch "Anas Mahfouz \(The 80\)") { throw "unexpected banner" }
+          # --version prints a multi-line banner; PowerShell's -match/-notmatch
+          # filter arrays instead of testing the whole text, so join first.
+          $raw = & "dist/80pwner/80pwner.exe" --version
+          $code = $LASTEXITCODE
+          $out = $raw -join "`n"
+          if ($code -ne 0) { throw "80pwner.exe --version failed (exit $code)" }
+          if (-not $out.Contains("Anas Mahfouz (The 80)")) {
+            throw "unexpected banner:`n$out"
+          }
+          if (-not $out.Contains("80PWNER")) { throw "missing product name:`n$out" }
 
       - name: Package (Unix)
         if: runner.os != 'Windows'
