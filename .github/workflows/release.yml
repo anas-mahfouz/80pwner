@@ -1,0 +1,151 @@
+# 80PWNER release — by Anas Mahfouz (The 80)
+#
+# Builds standalone, Python-free bundles for Linux / Windows / macOS plus the
+# sdist+wheel, and attaches everything to the GitHub release.
+#
+#   git tag v1.0.0 && git push origin v1.0.0
+#
+# or run it manually from the Actions tab (artifacts only, no release).
+
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bundle:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04   # older glibc → runs on most modern distros
+            name: linux-x86_64
+            archive: tar.gz
+          - os: windows-latest
+            name: windows-x86_64
+            archive: zip
+          - os: macos-15-intel  # Intel; remove if the runner label is retired
+            name: macos-x86_64
+            archive: tar.gz
+          - os: macos-latest    # Apple Silicon
+            name: macos-arm64
+            archive: tar.gz
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[analysis]" pyinstaller
+
+      - name: Build standalone bundle
+        run: pyinstaller --noconfirm --clean packaging/80pwner.spec
+
+      - name: Smoke test (Unix)
+        if: runner.os != 'Windows'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          ./dist/80pwner/80pwner --version | tee /dev/stderr | grep -q "Anas Mahfouz (The 80)"
+
+      - name: Smoke test (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          $out = & "dist/80pwner/80pwner.exe" --version
+          if ($LASTEXITCODE -ne 0) { throw "80pwner.exe --version failed" }
+          if ($out -notmatch "Anas Mahfouz \(The 80\)") { throw "unexpected banner" }
+
+      - name: Package (Unix)
+        if: runner.os != 'Windows'
+        run: tar -czf "80pwner-${{ matrix.name }}.tar.gz" -C dist 80pwner
+
+      - name: Package (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path dist/80pwner -DestinationPath "80pwner-${{ matrix.name }}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: 80pwner-${{ matrix.name }}
+          path: 80pwner-${{ matrix.name }}.${{ matrix.archive }}
+          if-no-files-found: error
+
+  sdist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist + wheel
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build
+
+      - name: Verify the wheel ships assets and the launcher entry point
+        run: |
+          python - <<'EOF'
+          import glob, zipfile
+          wheel = glob.glob("dist/*.whl")[0]
+          names = zipfile.ZipFile(wheel).namelist()
+          required = [
+              "eightypwner/assets/banner.txt",
+              "eightypwner/assets/themes/dark.qss",
+              "eightypwner/assets/themes/light.qss",
+              "eightypwner/assets/fonts/JetBrainsMono-Regular.ttf",
+          ]
+          missing = [name for name in required if name not in names]
+          assert not missing, f"wheel is missing: {missing}"
+          entry = [n for n in names if n.endswith("entry_points.txt")]
+          assert entry, "wheel has no entry points"
+          print("wheel OK:", wheel, len(names), "files")
+          EOF
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: 80pwner-sdist-wheel
+          path: dist/*
+          if-no-files-found: error
+
+  release:
+    # Single publisher: avoids concurrent release creation races between jobs.
+    needs: [bundle, sdist]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: List release assets
+        run: ls -lh artifacts
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*
+          generate_release_notes: true
+          fail_on_unmatched_files: true

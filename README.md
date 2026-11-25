@@ -12,6 +12,10 @@
 
 **80PWNER — by Anas Mahfouz (The 80)**
 
+> **Download:** [standalone builds for Linux / Windows / macOS](https://github.com/the80/80pwner/releases/latest)
+> · **Install:** `pipx install "80pwner[analysis] @ git+https://github.com/the80/80pwner.git"`
+> · **License:** MIT
+
 One desktop app instead of the scattered terminal workflow of CTF pwn (checksec,
 objdump, gdb+pwndbg, ROPgadget, cyclic patterns, notes). Open a binary once —
 every module works on the same target and stays synchronized.
@@ -135,38 +139,97 @@ every module works on the same target and stays synchronized.
 detects what's available and degrades to static analysis with clear install
 hints — no crashes, no silent failures.
 
-## Install (per OS)
+## Install & run
 
-### Linux (Mint/Debian first)
+80PWNER runs from a terminal on Linux, Windows (CMD/PowerShell) and macOS.
+Pick whichever path fits your machine — all three give the same app.
+
+### 1. Standalone binary — no Python required (recommended)
+
+Download the archive for your platform from the
+[latest release](https://github.com/the80/80pwner/releases/latest), extract it,
+and run the executable inside the `80pwner/` folder:
+
+| Platform | Archive | Run |
+|---|---|---|
+| Linux x86-64 | `80pwner-linux-x86_64.tar.gz` | `./80pwner/80pwner` |
+| Windows x64 | `80pwner-windows-x86_64.zip` | `80pwner\80pwner.exe` |
+| macOS Apple Silicon | `80pwner-macos-arm64.tar.gz` | `./80pwner/80pwner` |
+| macOS Intel | `80pwner-macos-x86_64.tar.gz` | `./80pwner/80pwner` |
+
+Linux / macOS one-liner:
 
 ```bash
-sudo apt install gdb                 # debugger backend, Steps 4+
-pipx install .                       # or: pip install .
-80pwner                              # or: ./80pwner
+curl -L https://github.com/the80/80pwner/releases/latest/download/80pwner-linux-x86_64.tar.gz | tar xz
+chmod +x 80pwner/80pwner
+./80pwner/80pwner
 ```
 
-### Windows
+Windows CMD:
+
+```bat
+curl -LO https://github.com/the80/80pwner/releases/latest/download/80pwner-windows-x86_64.zip
+tar -xf 80pwner-windows-x86_64.zip
+80pwner\80pwner.exe
+```
+
+Windows 10+ ships `tar`; you can also just right-click the downloaded `.zip` →
+*Extract All* and double-click `80pwner.exe`.
+
+> The bundles are unsigned. If macOS refuses to start one, run
+> `xattr -dr com.apple.quarantine ./80pwner`; on Windows SmartScreen choose
+> *More info → Run anyway*. The Linux build targets glibc 2.35+ (Ubuntu 22.04
+> and newer).
+>
+> On a minimal Linux install Qt may need its X11/OpenGL runtime libraries:
+> `sudo apt install libgl1 libegl1 libxkbcommon-x11-0 libxcb-cursor0`
+> (Fedora: `sudo dnf install mesa-libGL libxkbcommon-x11 libxcb`).
+
+### 2. pipx / pip — any OS with Python 3.11+
 
 ```bash
-py -3 -m pip install -U pip
-pip install .
-python -m eightypwner                # or: 80pwner.bat
+pipx install "80pwner[analysis] @ git+https://github.com/the80/80pwner.git"
+80pwner
 ```
 
-### macOS
+Or from a clone, with the engine extras:
 
 ```bash
-brew install gdb                     # note: codesign may be required
-pipx install .
-80pwner                              # python3 -m eightypwner --no-splash
+git clone https://github.com/the80/80pwner && cd 80pwner
+pipx install '.[analysis]'
+80pwner
 ```
 
-### Launcher details
+### 3. From source — one command, auto-bootstraps
 
-- `./80pwner` (bash) uses `.venv` if present, else the installed package, else
-  runs straight from `src/` for development
-- `80pwner.bat` (Windows) does the same for `%DIR%.venv\Scripts\python.exe`
-- `python -m eightypwner` always works
+```bash
+git clone https://github.com/the80/80pwner && cd 80pwner
+./80pwner                 # Linux/macOS: creates .venv + installs deps on first run
+```
+
+```bat
+git clone https://github.com/the80/80pwner
+cd 80pwner
+80pwner.bat               rem Windows: same bootstrap
+```
+
+The launchers create `.venv` and install `.[analysis]` the first time, then
+just run the app. Set `EIGHTYPWNER_NO_BOOTSTRAP=1` to skip that, or
+`EIGHTYPWNER_EXTRAS=all` to also install pwntools.
+
+### Debugger backend
+
+The GUI, disassembler, CFG, heap parser, gadget finder and payload studio work
+without a debugger. Live debugging uses GDB/MI:
+
+```bash
+sudo apt install gdb        # Debian/Ubuntu/Mint
+sudo dnf install gdb        # Fedora
+brew install gdb            # macOS (codesign may be required)
+```
+
+Windows has no native GDB/MI backend yet; 80PWNER detects this and degrades to
+static analysis with install hints instead of failing.
 
 ### Options
 
@@ -176,11 +239,12 @@ pipx install .
 
 ### Engine dependencies
 
-Core needs only PySide6 + platformdirs. From Step 2 onward install the
-`analysis` extra: `pipx install '80pwner[analysis]'` or
-`pip install '.[analysis]'` (pwntools, capstone, LIEF, pygdbmi, keystone,
-pyelftools). The About dialog shows what's present with install hints per
-missing tool.
+Core needs only PySide6 + platformdirs. The `analysis` extra adds the engine
+backends: capstone (disassembly), LIEF (binary parsing), pygdbmi (GDB/MI),
+keystone-engine (assembly) and pyelftools (ELF fallback). `pwntools` is *not*
+imported by the app — install the `pwntools`/`all` extra only if you want to
+run the exploits the Script Generator writes. The About dialog shows what's
+present with install hints per missing tool.
 
 ## Development
 
@@ -193,13 +257,36 @@ pytest                    # headless (offscreen Qt by default)
 ```
 
 - CI: GitHub Actions matrix (ubuntu / windows / macos) runs ruff, pytest and an
-  offscreen GUI smoke test on every push/PR
-- Packaging: `pyproject.toml` is the source of truth; PyInstaller spec at
-  `packaging/80pwner.spec` for standalone bundles (build when ready):
-  `pip install pyinstaller && pyinstaller packaging/80pwner.spec`
+  offscreen GUI smoke test on every push/PR, plus a PyInstaller bundle build
+- Release: pushing a `v*` tag runs `.github/workflows/release.yml`, which builds
+  Linux / Windows / macOS standalone bundles and the sdist+wheel, smoke-tests
+  each bundle, and attaches them to the GitHub release
+- Build a bundle locally:
+  `pip install -e '.[analysis]' pyinstaller && pyinstaller --noconfirm --clean packaging/80pwner.spec`
+  → `dist/80pwner/80pwner` (or `dist\80pwner\80pwner.exe`)
+- Build a wheel/sdist: `python -m build` (assets, fonts and themes are package
+  data and are verified by the release workflow)
 - Sample targets: `tests/samples/build_samples.sh` compiles `vulnerable.c`
   into three ELF variants — `vuln_none.elf` (no protections),
   `vuln_defaults.elf` (distro defaults), `vuln_full.elf` (all mitigations)
+
+### Publishing a release
+
+The workflows assume the repository is `github.com/the80/80pwner`; update the
+URLs in `pyproject.toml` and this README if yours differs. Then:
+
+```bash
+git remote add origin https://github.com/<you>/80pwner.git   # once
+git push -u origin master
+
+git tag v1.0.0
+git push origin v1.0.0        # builds Linux/Windows/macOS bundles + sdist/wheel
+```
+
+The tag push runs `.github/workflows/release.yml`; when it finishes, the
+release page has the standalone archives and the Python distributions. To
+build artifacts without publishing, run the workflow manually from the Actions
+tab (`workflow_dispatch`).
 
 ## Delivery plan
 

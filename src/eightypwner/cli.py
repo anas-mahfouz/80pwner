@@ -83,8 +83,15 @@ def main(argv: list[str] | None = None) -> int:
     if args.theme:
         theme.set_mode_persist(args.theme)
 
+    from eightypwner.constants import APP_VERSION
+
     ctx = PluginContext(
-        bus=bus, settings=settings, app_version="0.1.0", ui_bus=ui_bus, theme=theme, session=session
+        bus=bus,
+        settings=settings,
+        app_version=APP_VERSION,
+        ui_bus=ui_bus,
+        theme=theme,
+        session=session,
     )
     registry = PluginRegistry(ctx)
     registry.load_builtins()

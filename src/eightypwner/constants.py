@@ -19,7 +19,7 @@ APP_AUTHOR = "Anas Mahfouz (The 80)"
 APP_HANDLE = "The 80"
 APP_COPYRIGHT = "Copyright © 2026 Anas Mahfouz (The 80)"
 APP_TAGLINE = "An Integrated GUI Pwn / Binary Analysis Workbench"
-APP_VERSION = "0.1.0"
+APP_VERSION = "1.0.0"
 APP_LICENSE = "MIT"
 
 # Qt organisation/app names.

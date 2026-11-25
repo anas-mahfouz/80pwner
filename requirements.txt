@@ -1,12 +1,14 @@
 # 80PWNER — by Anas Mahfouz (The 80)
-# Core (required, Step 1)
-PySide6>=6.6
+# Core runtime (required)
+PySide6-Essentials>=6.6
 platformdirs>=4.0
 
-# Engines (required from Step 2 onwards; also available as the [analysis] extra)
-pwntools>=4.11
+# Engines (recommended; equivalent to `pip install '.[analysis]'`)
 capstone>=5.0
 lief>=0.13
 pygdbmi>=0.11
-keystone-engine>=0.11
+keystone-engine>=0.9.2
 pyelftools>=0.30
+
+# Optional — only needed to run the exploits the Script Generator emits
+# pwntools>=4.11

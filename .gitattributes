@@ -1,0 +1,14 @@
+# 80PWNER — by Anas Mahfouz (The 80)
+# Keep Windows batch files CRLF (cmd.exe is happier with them) and the
+# Linux/macOS launcher LF.
+
+* text=auto
+
+*.bat text eol=crlf
+*.sh text eol=lf
+80pwner text eol=lf
+
+*.png binary
+*.ttf binary
+*.elf binary
+*.ico binary

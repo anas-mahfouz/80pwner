@@ -1,22 +1,74 @@
 #!/usr/bin/env bash
 # 80PWNER launcher (Linux/macOS) — by Anas Mahfouz (The 80)
-# Usage: ./80pwner [--version] [options]
+#
+#   ./80pwner [--version] [--no-splash] [--theme dark|light|system] [--log-level LEVEL]
+#
+# First run bootstraps a local .venv and installs the engine extras, so a
+# fresh clone only needs Python 3.11+:
+#
+#   git clone https://github.com/the80/80pwner && cd 80pwner && ./80pwner
+#
+# Environment:
+#   EIGHTYPWNER_NO_BOOTSTRAP=1   never create/install, just run what exists
+#   EIGHTYPWNER_PYTHON=/path/py  interpreter used to create the venv
+#   EIGHTYPWNER_EXTRAS=all       extras to install (default: analysis)
 set -euo pipefail
 
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+VENV="$DIR/.venv"
+EXTRAS="${EIGHTYPWNER_EXTRAS:-analysis}"
 
-# Prefer the project virtualenv, then an installed copy (pipx/pip),
-# then fall back to system python with PYTHONPATH pointing at src/.
-if [[ -x "$DIR/.venv/bin/python" ]]; then
-    if "$DIR/.venv/bin/python" -c "import eightypwner" 2>/dev/null || \
-       PYTHONPATH="$DIR/src" "$DIR/.venv/bin/python" -c "import eightypwner" 2>/dev/null; then
-        export PYTHONPATH="${PYTHONPATH:-}:$DIR/src"
-        exec "$DIR/.venv/bin/python" -m eightypwner "$@"
+say() { printf '\033[1;31m[80PWNER]\033[0m %s\n' "$*" >&2; }
+die() { say "$*"; exit 1; }
+
+find_python() {
+    if [[ -n "${EIGHTYPWNER_PYTHON:-}" ]]; then
+        printf '%s\n' "$EIGHTYPWNER_PYTHON"
+        return 0
     fi
+    local candidate
+    for candidate in python3.13 python3.12 python3.11 python3 python; do
+        if command -v "$candidate" >/dev/null 2>&1; then
+            if "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
+                printf '%s\n' "$candidate"
+                return 0
+            fi
+        fi
+    done
+    return 1
+}
+
+venv_ok() {
+    [[ -x "$VENV/bin/python" ]] && \
+        "$VENV/bin/python" -c 'import eightypwner, PySide6' >/dev/null 2>&1
+}
+
+bootstrap() {
+    local python
+    python="$(find_python)" || die "Python 3.11+ is required (set EIGHTYPWNER_PYTHON=/path/to/python)."
+
+    if [[ ! -x "$VENV/bin/python" ]]; then
+        say "First run: creating .venv with $("$python" --version 2>&1)…"
+        "$python" -m venv "$VENV" || die \
+            "Could not create a virtualenv. On Debian/Ubuntu install python3-venv."
+    fi
+
+    say "Installing 80PWNER and engine dependencies (one-time, needs network)…"
+    "$VENV/bin/python" -m pip install --upgrade pip >/dev/null 2>&1 || true
+    if ! "$VENV/bin/python" -m pip install --disable-pip-version-check -e "$DIR[$EXTRAS]"; then
+        say "Full install failed; retrying core-only (disassembly features degrade gracefully)."
+        "$VENV/bin/python" -m pip install --disable-pip-version-check -e "$DIR" || die \
+            "Dependency installation failed. Check your network/proxy and retry."
+    fi
+}
+
+if ! venv_ok; then
+    if [[ "${EIGHTYPWNER_NO_BOOTSTRAP:-0}" == "1" ]]; then
+        die ".venv is missing or incomplete and EIGHTYPWNER_NO_BOOTSTRAP=1."
+    fi
+    bootstrap
 fi
 
-if ! python3 -c "import eightypwner" 2>/dev/null; then
-    export PYTHONPATH="${PYTHONPATH:-}:$DIR/src"
-fi
-
-exec python3 -m eightypwner "$@"
+# Always prefer the in-tree sources over an older installed copy.
+export PYTHONPATH="$DIR/src${PYTHONPATH:+:$PYTHONPATH}"
+exec "$VENV/bin/python" -m eightypwner "$@"

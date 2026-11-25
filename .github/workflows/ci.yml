@@ -1,11 +1,11 @@
 # 80PWNER CI — by Anas Mahfouz (The 80)
-# Lint + tests + offscreen GUI smoke test on the three OSes.
+# Lint + tests + offscreen GUI smoke test + PyInstaller bundle smoke test.
 
 name: ci
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
 
 jobs:
@@ -25,7 +25,7 @@ jobs:
       - name: Install
         run: |
           python -m pip install --upgrade pip
-          pip install .[dev]
+          pip install ".[dev,analysis]"
 
       - name: Lint (ruff)
         run: ruff check src tests
@@ -66,3 +66,28 @@ jobs:
           win.save_layout()
           print("SMOKE OK on", sys.platform)
           EOF
+
+  bundle:
+    # Catches PyInstaller spec/data regressions on every push/PR.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install ".[analysis]" pyinstaller
+
+      - name: Build standalone bundle
+        run: pyinstaller --noconfirm --clean packaging/80pwner.spec
+
+      - name: Bundle smoke test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: |
+          ./dist/80pwner/80pwner --version
+          ./dist/80pwner/80pwner --version | grep -q "Anas Mahfouz (The 80)"

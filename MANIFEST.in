@@ -1,0 +1,23 @@
+# 80PWNER — by Anas Mahfouz (The 80)
+# Copyright (c) 2026 Anas Mahfouz (The 80). MIT License.
+#
+# Source-distribution manifest. Wheels get package data from
+# [tool.setuptools.package-data] in pyproject.toml; this file makes the same
+# files available in `sdist` builds and keeps the launchers/LICENSE with the
+# source archive.
+
+include LICENSE
+include README.md
+include requirements.txt
+include 80pwner
+include 80pwner.bat
+include .pre-commit-config.yaml
+
+recursive-include src/eightypwner/assets *
+recursive-include packaging *
+recursive-include docs *.png
+recursive-include tests *.py *.c *.elf *.sh
+
+global-exclude __pycache__
+global-exclude *.py[cod]
+global-exclude .DS_Store

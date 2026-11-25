@@ -1,32 +1,80 @@
 # 80PWNER PyInstaller spec — by Anas Mahfouz (The 80)
-# Builds standalone bundles (do not run as part of the normal build).
+# Copyright (c) 2026 Anas Mahfouz (The 80). MIT License.
 #
-#   pip install pyinstaller
-#   pyinstaller packaging/80pwner.spec          # (Linux/macOS/Windows)
-# Output lands in dist/80pwner/ (onedir keeps Qt fast-loading).
+# Builds standalone, Python-free bundles for Linux, Windows and macOS:
 #
-# The QSS themes + bundled fonts ship as package data; binaries/hidden imports
-# for the engines (LIEF, capstone, gmpy2 …) get pulled by PyInstaller's hooks.
+#   pip install -e '.[analysis]' pyinstaller
+#   pyinstaller --noconfirm --clean packaging/80pwner.spec
+#
+# Output: dist/80pwner/ (onedir — Qt loads much faster than onefile).
+# The GitHub release workflow runs this on every OS and attaches archives.
 
-import sys
+import os
+
+from PyInstaller.utils.hooks import (
+    collect_data_files,
+    collect_dynamic_libs,
+    collect_submodules,
+)
+
+ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))  # noqa: F821 (injected by PyInstaller)
+ENTRY = os.path.join(SPECPATH, "run_80pwner.py")  # noqa: F821
 
 block_cipher = None
 
+# --- application data (banner art, QSS themes, bundled fonts) ---------------
+datas = collect_data_files("eightypwner")
+
+# --- native backends --------------------------------------------------------
+binaries: list[tuple[str, str]] = []
+hiddenimports: list[str] = collect_submodules("eightypwner")
+
+for package in ("capstone", "keystone", "lief", "elftools", "pygdbmi"):
+    try:
+        binaries += collect_dynamic_libs(package)
+    except Exception:
+        pass
+    try:
+        hiddenimports += collect_submodules(package)
+    except Exception:
+        pass
+
+hiddenimports += ["capstone", "keystone", "lief", "pygdbmi"]
+
 a = Analysis(
-    ["run_80pwner.py"],
-    pathex=[],
-    binaries=[],
-    datas=[],
-    hiddenimports=[
-        "eightypwner",       # top-level package (digit-prefixed dist id)
-        "eightypwner.cli",
-        "PySide6.QtWidgets",
-        "PySide6.QtGui",
-        "PySide6.QtCore",
-    ],
+    [ENTRY],
+    pathex=[os.path.join(ROOT, "src")],
+    binaries=binaries,
+    datas=datas,
+    hiddenimports=hiddenimports,
     hookspath=[],
+    hooksconfig={},
     runtime_hooks=[],
-    excludes=[],
+    excludes=[
+        # We only import QtCore/QtGui/QtWidgets; drop the heavy optional stacks.
+        "PySide6.QtWebEngineCore",
+        "PySide6.QtWebEngineWidgets",
+        "PySide6.QtWebEngineQuick",
+        "PySide6.QtQml",
+        "PySide6.QtQuick",
+        "PySide6.QtQuickWidgets",
+        "PySide6.QtQuick3D",
+        "PySide6.Qt3DCore",
+        "PySide6.Qt3DRender",
+        "PySide6.QtMultimedia",
+        "PySide6.QtMultimediaWidgets",
+        "PySide6.QtCharts",
+        "PySide6.QtDataVisualization",
+        "PySide6.QtPdf",
+        "PySide6.QtPdfWidgets",
+        "PySide6.QtDesigner",
+        "PySide6.QtHelp",
+        "PySide6.QtTest",
+        "tkinter",
+        "pytest",
+        "numpy",
+        "matplotlib",
+    ],
     cipher=block_cipher,
     noarchive=False,
 )
@@ -39,22 +87,24 @@ exe = EXE(
     [],
     exclude_binaries=True,
     name="80pwner",
-    console=False,               # GUI app on every OS; logs go to the log dir
+    debug=False,
+    bootloader_ignore_signals=False,
+    strip=False,
+    upx=False,  # UPX frequently trips Windows AV; skip it
+    console=True,  # launched from a terminal: keep stdout for --version/logs
     disable_windowed_traceback=False,
-    version=None,
-    upx=False,                   # UPX often trips AV on windows; skip
+    argv_emulation=False,
+    target_arch=None,
+    codesign_identity=None,
+    entitlements_file=None,
 )
 
 coll = COLLECT(
     exe,
     a.binaries,
-    a.zipfiles,
     a.datas,
     strip=False,
     upx=False,
+    upx_exclude=[],
     name="80pwner",
 )
-
-# macOS: optional app bundle — uncomment to build an .app
-# if sys.platform == "darwin":
-#     app = BUNDLE(coll, name="80PWNER.app", icon=None, bundle_identifier="local.the80.80pwner")

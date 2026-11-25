@@ -1,34 +1,62 @@
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 # Distribution name keeps the brand; the importable package is `eightypwner`
 # because Python identifiers cannot start with a digit.
 [project]
 name = "80pwner"
-version = "0.1.0"
+version = "1.0.0"
 description = "80PWNER — An Integrated GUI Pwn / Binary Analysis Workbench"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
-authors = [{ name = "Anas Mahfouz (The 80)" }]
-keywords = ["ctf", "pwn", "binary", "reverse-engineering", "gdb", "gui"]
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Anas Mahfouz (The 80)", email = "the80@80pwner.local" }]
+keywords = ["ctf", "pwn", "binary", "reverse-engineering", "gdb", "gui", "exploit"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: X11 Applications :: Qt",
+    "Environment :: Win32 (MS Windows)",
+    "Environment :: MacOS X",
+    "Intended Audience :: Information Technology",
+    "Intended Audience :: Developers",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Security",
+    "Topic :: Software Development :: Disassemblers",
+    "Topic :: Software Development :: Debuggers",
+]
 
 dependencies = [
-    "PySide6>=6.6",
+    "PySide6-Essentials>=6.6",
     "platformdirs>=4.0",
     # Engine backends are imported lazily; install the [analysis] extra for
     # full functionality (Steps 2-10 of the delivery plan).
 ]
 
 [project.optional-dependencies]
+# Everything the app itself imports at runtime (disassembly, ELF parsing,
+# GDB/MI control, Keystone assembly). `pipx install '80pwner[analysis]'`.
 analysis = [
-    "pwntools>=4.11",
     "capstone>=5.0",
     "lief>=0.13",
     "pygdbmi>=0.11",
-    "keystone-engine>=0.11",
+    "keystone-engine>=0.9.2",
     "pyelftools>=0.30",
+]
+# Only needed to *run* the pwntools exploits the Script Generator emits.
+pwntools = ["pwntools>=4.11"]
+all = [
+    "capstone>=5.0",
+    "lief>=0.13",
+    "pygdbmi>=0.11",
+    "keystone-engine>=0.9.2",
+    "pyelftools>=0.30",
+    "pwntools>=4.11",
 ]
 dev = [
     "pytest>=8.0",
@@ -36,23 +64,35 @@ dev = [
     "ruff>=0.5",
     "pre-commit>=3.7",
     "pyfiglet>=1.0",  # only to regenerate src/eightypwner/assets/banner.txt
+    "build>=1.2",
+    "pyinstaller>=6.0",
 ]
 
 [project.scripts]
 80pwner = "eightypwner.cli:main"
 
 # Third-party plugin hooks: any installed distribution may expose
-# ``80pwner.plugins`` entry points pointing at Plugin subclasses.
+# ``80pwner.plugins`` entry points pointing a Plugin subclass.
 [project.entry-points."80pwner.plugins"]
 
 [project.urls]
 Homepage = "https://github.com/the80/80pwner"
+Repository = "https://github.com/the80/80pwner"
+Issues = "https://github.com/the80/80pwner/issues"
+Changelog = "https://github.com/the80/80pwner/releases"
+"Download standalone builds" = "https://github.com/the80/80pwner/releases/latest"
+
+[tool.setuptools]
+include-package-data = true
 
 [tool.setuptools.packages.find]
 where = ["src"]
+include = ["eightypwner*"]
 
 [tool.setuptools.package-data]
-eightypwner = ["assets/**/*"]
+"eightypwner.assets" = ["*.txt"]
+"eightypwner.assets.themes" = ["*.qss"]
+"eightypwner.assets.fonts" = ["*.ttf", "*.txt"]
 
 [tool.ruff]
 line-length = 100
@@ -65,5 +105,6 @@ ignore = ["E501"]  # long lines allowed in QSS/ASCII art constants
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["src"]
 addopts = "-q"
 qt_api = "pyside6"
