@@ -76,11 +76,11 @@ dev = [
 [project.entry-points."80pwner.plugins"]
 
 [project.urls]
-Homepage = "https://github.com/the80/80pwner"
-Repository = "https://github.com/the80/80pwner"
-Issues = "https://github.com/the80/80pwner/issues"
-Changelog = "https://github.com/the80/80pwner/releases"
-"Download standalone builds" = "https://github.com/the80/80pwner/releases/latest"
+Homepage = "https://github.com/anas-mahfouz/80pwner"
+Repository = "https://github.com/anas-mahfouz/80pwner"
+Issues = "https://github.com/anas-mahfouz/80pwner/issues"
+Changelog = "https://github.com/anas-mahfouz/80pwner/releases"
+"Download standalone builds" = "https://github.com/anas-mahfouz/80pwner/releases/latest"
 
 [tool.setuptools]
 include-package-data = true

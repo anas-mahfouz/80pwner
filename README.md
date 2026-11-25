@@ -12,8 +12,8 @@
 
 **80PWNER — by Anas Mahfouz (The 80)**
 
-> **Download:** [standalone builds for Linux / Windows / macOS](https://github.com/the80/80pwner/releases/latest)
-> · **Install:** `pipx install "80pwner[analysis] @ git+https://github.com/the80/80pwner.git"`
+> **Download:** [standalone builds for Linux / Windows / macOS](https://github.com/anas-mahfouz/80pwner/releases/latest)
+> · **Install:** `pipx install "80pwner[analysis] @ git+https://github.com/anas-mahfouz/80pwner.git"`
 > · **License:** MIT
 
 One desktop app instead of the scattered terminal workflow of CTF pwn (checksec,
@@ -147,7 +147,7 @@ Pick whichever path fits your machine — all three give the same app.
 ### 1. Standalone binary — no Python required (recommended)
 
 Download the archive for your platform from the
-[latest release](https://github.com/the80/80pwner/releases/latest), extract it,
+[latest release](https://github.com/anas-mahfouz/80pwner/releases/latest), extract it,
 and run the executable inside the `80pwner/` folder:
 
 | Platform | Archive | Run |
@@ -160,7 +160,7 @@ and run the executable inside the `80pwner/` folder:
 Linux / macOS one-liner:
 
 ```bash
-curl -L https://github.com/the80/80pwner/releases/latest/download/80pwner-linux-x86_64.tar.gz | tar xz
+curl -L https://github.com/anas-mahfouz/80pwner/releases/latest/download/80pwner-linux-x86_64.tar.gz | tar xz
 chmod +x 80pwner/80pwner
 ./80pwner/80pwner
 ```
@@ -168,7 +168,7 @@ chmod +x 80pwner/80pwner
 Windows CMD:
 
 ```bat
-curl -LO https://github.com/the80/80pwner/releases/latest/download/80pwner-windows-x86_64.zip
+curl -LO https://github.com/anas-mahfouz/80pwner/releases/latest/download/80pwner-windows-x86_64.zip
 tar -xf 80pwner-windows-x86_64.zip
 80pwner\80pwner.exe
 ```
@@ -188,14 +188,14 @@ Windows 10+ ships `tar`; you can also just right-click the downloaded `.zip` →
 ### 2. pipx / pip — any OS with Python 3.11+
 
 ```bash
-pipx install "80pwner[analysis] @ git+https://github.com/the80/80pwner.git"
+pipx install "80pwner[analysis] @ git+https://github.com/anas-mahfouz/80pwner.git"
 80pwner
 ```
 
 Or from a clone, with the engine extras:
 
 ```bash
-git clone https://github.com/the80/80pwner && cd 80pwner
+git clone https://github.com/anas-mahfouz/80pwner && cd 80pwner
 pipx install '.[analysis]'
 80pwner
 ```
@@ -203,12 +203,12 @@ pipx install '.[analysis]'
 ### 3. From source — one command, auto-bootstraps
 
 ```bash
-git clone https://github.com/the80/80pwner && cd 80pwner
+git clone https://github.com/anas-mahfouz/80pwner && cd 80pwner
 ./80pwner                 # Linux/macOS: creates .venv + installs deps on first run
 ```
 
 ```bat
-git clone https://github.com/the80/80pwner
+git clone https://github.com/anas-mahfouz/80pwner
 cd 80pwner
 80pwner.bat               rem Windows: same bootstrap
 ```
@@ -272,7 +272,7 @@ pytest                    # headless (offscreen Qt by default)
 
 ### Publishing a release
 
-The workflows assume the repository is `github.com/the80/80pwner`; update the
+The workflows assume the repository is `github.com/anas-mahfouz/80pwner`; update the
 URLs in `pyproject.toml` and this README if yours differs. Then:
 
 ```bash
