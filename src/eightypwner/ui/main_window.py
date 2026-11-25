@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Main window: dockable layout, branding, status bar, theme toggle, drag & drop."""
 
@@ -35,6 +35,24 @@ if TYPE_CHECKING:
 log = logging.getLogger(__name__)
 
 BINARY_SUFFIXES = {".elf", ".o", ".so", ".bin", ".out", "exe", ".axf", ""}
+
+# First-run dock placement. Unknown/third-party plugins fall back to the left
+# area; _apply_default_layout() tabs the crowded groups afterwards.
+_DOCK_AREAS = {
+    "Welcome": Qt.DockWidgetArea.LeftDockWidgetArea,
+    "Binary Overview": Qt.DockWidgetArea.LeftDockWidgetArea,
+    "Disassembler": Qt.DockWidgetArea.LeftDockWidgetArea,
+    "Debugger": Qt.DockWidgetArea.BottomDockWidgetArea,
+    "Stack Visualizer": Qt.DockWidgetArea.BottomDockWidgetArea,
+    "Heap": Qt.DockWidgetArea.BottomDockWidgetArea,
+    "Challenges": Qt.DockWidgetArea.BottomDockWidgetArea,
+    "Gadget Finder": Qt.DockWidgetArea.RightDockWidgetArea,
+    "Pattern Tool": Qt.DockWidgetArea.RightDockWidgetArea,
+    "Libc Helper": Qt.DockWidgetArea.RightDockWidgetArea,
+    "Control Flow": Qt.DockWidgetArea.RightDockWidgetArea,
+    "Script Generator": Qt.DockWidgetArea.RightDockWidgetArea,
+    "Payload Studio": Qt.DockWidgetArea.RightDockWidgetArea,
+}
 
 
 class FooterLabel(QLabel):
@@ -163,8 +181,10 @@ class MainWindow(QMainWindow):
             dock = QDockWidget(f"{plugin.icon} {plugin.name}".strip(), self)
             dock.setObjectName(plugin.name)  # stable objectName → layout saving works
             dock.setWidget(panel)
-            self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, dock)
+            area = _DOCK_AREAS.get(plugin.name, Qt.DockWidgetArea.LeftDockWidgetArea)
+            self.addDockWidget(area, dock)
             self._dock_by_name[plugin.name] = dock
+        self._apply_default_layout()
 
         # Let theme-aware plugins know the module set (welcome's "loaded modules").
         self.bus.publish(
@@ -174,6 +194,30 @@ class MainWindow(QMainWindow):
                 for p in self.registry.plugins
             ]},
         )
+
+    def _apply_default_layout(self) -> None:
+        """Tab the secondary docks so 13 modules fit on one screen.
+
+        A saved layout (``window.dock_state``) replaces this entirely; this is
+        only the first-run arrangement: disassembly on the left, analysis
+        tools tabbed on the right, debugger/heap/session views at the bottom.
+        """
+
+        def tabify(names: list[str], visible: str | None = None) -> None:
+            docks = [self._dock_by_name[name] for name in names if name in self._dock_by_name]
+            if len(docks) < 2:
+                return
+            for other in docks[1:]:
+                self.tabifyDockWidget(docks[0], other)
+            if visible and visible in self._dock_by_name:
+                self._dock_by_name[visible].raise_()
+
+        tabify(["Welcome", "Binary Overview"], visible="Welcome")
+        tabify(
+            ["Gadget Finder", "Pattern Tool", "Libc Helper", "Script Generator", "Payload Studio"],
+            visible="Gadget Finder",
+        )
+        tabify(["Stack Visualizer", "Heap", "Challenges"], visible="Stack Visualizer")
 
     # -- theme ---------------------------------------------------------------
     def _refresh_theme_action(self) -> None:

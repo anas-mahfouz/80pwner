@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 import os
 import sys
@@ -21,3 +21,43 @@ if os.environ.get("LC_NUMERIC", "").startswith("ar"):
     from PySide6.QtCore import QLocale
 
     QLocale.setDefault(QLocale.c())
+
+
+# --------------------------------------------------------------------------
+# Qt lifecycle
+#
+# One QApplication for the whole session, created here instead of inside
+# individual tests. Keeping a strong reference (and tearing widgets down
+# deterministically while the app is still alive) avoids the intermittent
+# "pure virtual method called" abort that PySide6 can raise when Python
+# finalisation destroys QObject subclasses after their C++ vtable is gone.
+# --------------------------------------------------------------------------
+_QT_APP = None
+
+
+def pytest_configure(config):
+    global _QT_APP
+    from PySide6.QtWidgets import QApplication
+
+    _QT_APP = QApplication.instance() or QApplication([])
+
+
+def pytest_sessionfinish(session, exitstatus):
+    """Delete every top-level widget before the interpreter shuts down."""
+    import gc
+
+    from PySide6.QtCore import QEvent
+    from PySide6.QtWidgets import QApplication
+
+    app = QApplication.instance()
+    if app is None:
+        return
+    for widget in app.topLevelWidgets():
+        widget.close()
+        widget.deleteLater()
+    app.processEvents()
+    app.sendPostedEvents(None, QEvent.Type.DeferredDelete)
+    app.processEvents()
+    # Drop remaining Python-side references (plugins, relays, models) while
+    # QApplication still exists so their C++ destructors run in a safe order.
+    gc.collect()

@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """GDB/MI debugger engine (Step 4, spec §6.3).
 
@@ -25,6 +25,7 @@ import errno
 import logging
 import os
 import queue
+import re
 import shlex
 import shutil
 import signal
@@ -67,6 +68,8 @@ T_MEMORY_READ = "debugger_memory_read"
 T_REGISTERS = "debugger_registers"
 T_BACKTRACE = "debugger_backtrace"
 T_STACK_WORDS = "debugger_stack_words"
+T_HEAP_REQUEST = "heap_snapshot_request"  # UI → engine: {"max_bytes": int, "base": int|None}
+T_HEAP_SNAPSHOT = "heap_snapshot"  # engine → UI: {"base", "end", "data", "bits", ...}
 
 # emitted when a queued -data-evaluate-expression resolves (worker → UI)
 T_EVAL = "debugger_eval"  # {"expr": str, "value": str, "error": str?}
@@ -140,6 +143,8 @@ class GdbEngine:
         # queued -data-evaluate-expression calls awaiting their ^done/^error;
         # FIFO matches pygdbmi's ordered response stream (worker thread only)
         self._eval_queue: deque[str] = deque()
+        # heap snapshot request (UI thread sets it; the worker performs the reads)
+        self._heap_request: dict[str, Any] | None = None
 
     # ------------------------------------------------------------------- API
     @property
@@ -261,6 +266,150 @@ class GdbEngine:
         """*count* quadwords around $sp (8 bytes each side is covered)."""
         window = (count // 2 + 1) * 8
         self.queued(f'-data-read-memory-bytes "($sp - {window})" {window * 2}')
+
+    # -- heap snapshot -----------------------------------------------------------
+    def request_heap_snapshot(self, max_bytes: int = 256 * 1024, base: int | None = None) -> None:
+        """Queue a heap snapshot (chunk chain + tcache source bytes).
+
+        Non-blocking for the caller: the worker resolves ``[heap]`` from
+        ``info proc mappings`` (unless *base* is given), reads up to
+        *max_bytes* in 4 KiB MI reads, and publishes ``heap_snapshot``.
+        Requires a stopped inferior.
+        """
+        if self._state != "stopped":
+            self._emit(
+                T_HEAP_SNAPSHOT,
+                {
+                    "error": "The debuggee must be stopped to snapshot the heap "
+                             "(set a breakpoint and run to it)."
+                },
+            )
+            return
+        self._heap_request = {
+            "max_bytes": max(0x1000, min(int(max_bytes), 16 * 1024 * 1024)),
+            "base": int(base) if base else None,
+        }
+
+    def _heap_base_from_mappings(self) -> tuple[int, int] | None:
+        """Parse gdb's ``info proc mappings`` output for the [heap] range."""
+        controller = self._controller
+        if controller is None:
+            return None
+        try:
+            records = controller.write(
+                '-interpreter-exec console "info proc mappings"',
+                timeout_sec=COMMAND_TIMEOUT,
+            )
+        except (GdbTimeoutError, BrokenPipeError, OSError, ValueError):
+            return None
+        text = "".join(
+            str(record.get("payload", ""))
+            for record in records
+            if record.get("type") in ("console", "output", "log")
+        )
+        for line in text.splitlines():
+            if "[heap]" not in line:
+                continue
+            match = re.search(r"(0x[0-9a-fA-F]+)\s+(0x[0-9a-fA-F]+)", line)
+            if match:
+                start = int(match.group(1), 16)
+                end = int(match.group(2), 16)
+                if end > start:
+                    return start, end
+        return None
+
+    def _do_heap_snapshot(self, max_bytes: int, base: int | None) -> None:
+        """Worker thread: resolve the heap and read it in 4 KiB MI chunks."""
+        controller = self._controller
+        if controller is None or self._state != "stopped":
+            self._emit(
+                T_HEAP_SNAPSHOT,
+                {"error": "Heap snapshot needs a live, stopped gdb session."},
+            )
+            return
+        if base:
+            region = (base, base + max_bytes)
+        else:
+            region = self._heap_base_from_mappings()
+            if region is None:
+                self._emit(
+                    T_HEAP_SNAPSHOT,
+                    {
+                        "error": "Could not find a [heap] mapping — the program may not "
+                                 "have allocated yet. Enter the heap base manually if you "
+                                 "know it, or continue until after the first malloc()."
+                    },
+                )
+                return
+        start, end = region
+        limit = min(max_bytes, max(0, end - start))
+        bits = 64
+        try:
+            bits = int(self._evaluate("sizeof(void*)").strip() or 8) * 8
+        except (TypeError, ValueError):
+            bits = 64
+        chunks: list[bytes] = []
+        read = 0
+        truncated = False
+        step = 0x1000
+        while read < limit and not self._stopping:
+            take = min(step, limit - read)
+            address = start + read
+            try:
+                records = controller.write(
+                    f"-data-read-memory-bytes 0x{address:x} {take}",
+                    timeout_sec=COMMAND_TIMEOUT,
+                )
+            except (GdbTimeoutError, BrokenPipeError, OSError, ValueError) as exc:
+                self._emit(
+                    T_HEAP_SNAPSHOT,
+                    {
+                        "base": start,
+                        "end": start + read,
+                        "data": b"".join(chunks),
+                        "bits": bits,
+                        "truncated": True,
+                        "error": f"Read stopped at {address:#x}: {exc}",
+                    },
+                )
+                return
+            contents = ""
+            for record in records:
+                payload = record.get("payload")
+                if record.get("type") == "result" and isinstance(payload, dict):
+                    memory = payload.get("memory")
+                    if isinstance(memory, list) and memory:
+                        contents = str(memory[0].get("contents", ""))
+                        break
+            if not contents:
+                truncated = True
+                break
+            try:
+                blob = bytes.fromhex(contents)
+            except ValueError:
+                truncated = True
+                break
+            if not blob:
+                truncated = True
+                break
+            chunks.append(blob)
+            read += len(blob)
+            if len(blob) < take:
+                truncated = True
+                break
+        data = b"".join(chunks)
+        self._emit(
+            T_HEAP_SNAPSHOT,
+            {
+                "base": start,
+                "end": start + len(data),
+                "data": data,
+                "bits": bits,
+                "truncated": truncated or len(data) < max(0, end - start),
+                "mapping_size": max(0, end - start),
+                "requested": limit,
+            },
+        )
 
     def read_stack_window(self, total: int = 1024) -> None:
         """Read a *total*-byte window centered on the selected frame's $sp.
@@ -404,6 +553,10 @@ class GdbEngine:
             with suppress(queue.Empty):
                 command = self._cmd_queue.get(timeout=_POLL_SEC)
             if command is None:
+                heap_request = self._heap_request
+                if heap_request is not None:
+                    self._heap_request = None
+                    self._do_heap_snapshot(**heap_request)
                 self._drain_async()
                 continue
             try:

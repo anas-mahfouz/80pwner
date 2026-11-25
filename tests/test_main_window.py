@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 #
 """Offscreen smoke test: the whole app boots, docks, toggles theme, persists."""
 
@@ -57,3 +57,19 @@ def test_about_dialog(qtbot, app_ctx):
     qtbot.addWidget(window)
     dlg = AboutDialog(window)
     assert "80PWNER" in dlg.windowTitle()
+
+
+def test_default_dock_layout_uses_all_three_areas(qtbot, app_ctx):
+    from PySide6.QtCore import Qt
+
+    window, _, _ = app_ctx
+    qtbot.addWidget(window)
+    docks = window._dock_by_name
+    assert window.dockWidgetArea(docks["Disassembler"]) == Qt.DockWidgetArea.LeftDockWidgetArea
+    assert window.dockWidgetArea(docks["Gadget Finder"]) == Qt.DockWidgetArea.RightDockWidgetArea
+    assert window.dockWidgetArea(docks["Debugger"]) == Qt.DockWidgetArea.BottomDockWidgetArea
+    # Crowded groups are tabbed, not stacked into unusable slivers.
+    assert "Binary Overview" in {dock.objectName() for dock in window.tabifiedDockWidgets(docks["Welcome"])}
+    assert "Pattern Tool" in {dock.objectName() for dock in window.tabifiedDockWidgets(docks["Gadget Finder"])}
+    assert "Challenges" in {dock.objectName() for dock in window.tabifiedDockWidgets(docks["Stack Visualizer"])}
+

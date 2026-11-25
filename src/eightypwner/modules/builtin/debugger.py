@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Debugger module (Step 4): docked GDB/MI panels over the :mod:`gdb_mi` engine.
 
@@ -52,6 +52,7 @@ from eightypwner.engines.gdb_mi import (
     T_DIED,
     T_ERROR,
     T_EXITED,
+    T_HEAP_REQUEST,
     T_MEMORY_GOTO_REQUEST,
     T_MEMORY_READ,
     T_OUTPUT,
@@ -589,6 +590,15 @@ class DebuggerPlugin(Plugin):
                     address = int(raw, 0) if isinstance(raw, str) else int(raw)
                     size = int(payload.get("size", 0) or 0) or 256
                     self._read_memory_view(address, size)
+            return
+        if topic == T_HEAP_REQUEST and isinstance(payload, dict):
+            if self._engine is not None:
+                with contextlib.suppress(TypeError, ValueError):
+                    base_raw = payload.get("base")
+                    base = int(base_raw, 0) if isinstance(base_raw, str) else base_raw
+                    self._engine.request_heap_snapshot(
+                        int(payload.get("max_bytes", 256 * 1024)), int(base) if base else None
+                    )
             return
 
         if topic == T_ERROR and isinstance(payload, dict):

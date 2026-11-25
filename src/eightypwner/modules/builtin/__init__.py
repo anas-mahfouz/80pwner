@@ -1,12 +1,9 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
+# Copyright (c) 2026 Anas Mahfouz (The 80). MIT License.
 
-"""Built-in modules live here. Real modules arrive from Step 2 onwards."""
+"""Built-in modules.
 
-# Importing each module package registers its Plugin classes for discovery.
-from eightypwner.modules.builtin import (
-    binary_overview,  # noqa: F401
-    debugger,  # noqa: F401
-    disassembler,  # noqa: F401
-    welcome,  # noqa: F401
-)
-
+Every submodule defines one ``Plugin`` subclass. The registry walks this
+package with ``pkgutil`` and registers each class automatically, so there is
+nothing to import here — adding a module is enough to add a dock.
+"""

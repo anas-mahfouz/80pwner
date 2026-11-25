@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """GDB/MI engine tests: integration on the sample binaries (skipped when gdb
 is missing) plus mocked error paths (gdb missing at boot, crashes, timeouts).
@@ -22,6 +22,7 @@ from eightypwner.engines.gdb_mi import (
     T_DIED,
     T_ERROR,
     T_EXITED,
+    T_HEAP_SNAPSHOT,
     T_MEMORY_CHANGED,
     T_REGISTERS,
     T_STACK_WORDS,
@@ -182,6 +183,68 @@ def test_shutdown_swallows_write_errors(fake_env):
     engine._controller.io.script = [BrokenPipeError("dying mid-shutdown")]
     engine.shutdown()  # must not raise
     assert engine.state == "exited"
+
+
+# ------------------------------------------------------------ heap snapshot
+def test_heap_snapshot_requires_stopped_session(fake_env):
+    engine, events = fake_env
+    engine._do_heap_snapshot(0x1000, None)
+    assert events and events[-1][0] == T_HEAP_SNAPSHOT
+    assert "needs a live, stopped gdb session" in events[-1][1]["error"]
+
+
+def test_heap_base_from_mappings_parses_heap_line(fake_env):
+    engine, _events = fake_env
+    engine._controller = _FakeController()
+    engine._state = "stopped"
+    engine._controller.io.script = [
+        (
+            True,
+            [
+                {
+                    "type": "console",
+                    "payload": (
+                        "Mapped address spaces:\n\n"
+                        "  start addr        end addr        size  offset  objfile\n"
+                        "  0x555555559000     0x55555557a000   0x21000  0x0  [heap]\n"
+                    ),
+                }
+            ],
+        )
+    ]
+    assert engine._heap_base_from_mappings() == (0x555555559000, 0x55555557A000)
+
+
+def test_heap_base_from_mappings_without_heap(fake_env):
+    engine, _events = fake_env
+    engine._controller = _FakeController()
+    engine._controller.io.script = [
+        (True, [{"type": "console", "payload": "  0x7ffff7dd0000  0x7ffff7df0000  r--p  libc.so.6\n"}])
+    ]
+    assert engine._heap_base_from_mappings() is None
+
+
+def test_heap_snapshot_reads_memory(fake_env):
+    engine, events = fake_env
+    engine._controller = _FakeController()
+    engine._state = "stopped"
+    blob = bytes.fromhex("21" + "00" * 15 + "31" + "00" * 15)
+    engine._controller.io.script = [
+        (True, [{"type": "result", "payload": {"value": "8"}}]),  # sizeof(void*)
+        (
+            True,
+            [{"type": "result", "payload": {"memory": [{"contents": blob.hex()}]}}],
+        ),
+    ]
+    engine._do_heap_snapshot(0x20, 0x1000)
+    assert events and events[-1][0] == T_HEAP_SNAPSHOT
+    payload = events[-1][1]
+    assert payload["base"] == 0x1000
+    assert payload["end"] == 0x1020
+    assert payload["data"] == blob
+    assert payload["bits"] == 64
+    assert payload["truncated"] is False
+    assert payload["requested"] == 0x20
 
 
 # ------------------------------------------------------------ integration
