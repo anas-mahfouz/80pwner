@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 from eightypwner.core.event_bus import BINARY_LOADED, EventBus
 

@@ -1,4 +1,4 @@
-# 80PWNER PyInstaller spec — by Anas Mahfouz (The80)
+# 80PWNER PyInstaller spec — by Anas Mahfouz (The 80)
 # Builds standalone bundles (do not run as part of the normal build).
 #
 #   pip install pyinstaller

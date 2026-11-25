@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 #
 """Step-3 UI flow tests: disassembler panel reacts via the bus (offscreen)."""
 

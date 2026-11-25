@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 from eightypwner.constants import ACCENT_DARK, ACCENT_LIGHT, APP_AUTHOR
 from eightypwner.core.settings import Settings
@@ -64,7 +64,7 @@ def test_system_mode_resolves(qtbot, tmp_path, monkeypatch):
 
 
 def test_branding_in_spans():
-    assert APP_AUTHOR == "Anas Mahfouz (The80)"
+    assert APP_AUTHOR == "Anas Mahfouz (The 80)"
 
 
 # --- WCAG contrast verification ------------------------------------------------

@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Platform services in one place (config/log/session locations, debugger
 detection, install hints). Everything here falls back gracefully — the app

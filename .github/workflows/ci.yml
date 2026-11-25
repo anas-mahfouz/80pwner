@@ -1,4 +1,4 @@
-# 80PWNER CI — by Anas Mahfouz (The80)
+# 80PWNER CI — by Anas Mahfouz (The 80)
 # Lint + tests + offscreen GUI smoke test on the three OSes.
 
 name: ci

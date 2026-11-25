@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Brand banner widget — "THE80-PWNER" rendered as filled rectangles.
 

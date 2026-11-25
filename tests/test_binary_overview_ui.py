@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 #
 """End-to-end UI tests: the overview plugin loads a sample through the bus."""
 

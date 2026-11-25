@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Pattern Tool (Step 6 B): de Bruijn pattern generator + crash-offset finder.
 

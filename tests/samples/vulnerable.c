@@ -1,5 +1,5 @@
 /* 80PWNER sample — intentionally vulnerable C program.
-   by Anas Mahfouz (The80) — for educational/CTF use on binaries you own.
+   by Anas Mahfouz (The 80) — for educational/CTF use on binaries you own.
 
    Contains: gets() (unbounded read), strcpy() (no bounds check) and
    printf(buf) (format-string bug). Built variants prove the checksec panel:

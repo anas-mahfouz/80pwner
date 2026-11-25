@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Binary parsing engine — static analysis for ELF / PE / Mach-O (spec C+D).
 

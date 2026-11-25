@@ -1,7 +1,6 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
-"""About dialog — branding home (spec §2: "80PWNER — by Anas Mahfouz (The80)")."""
-
+"""About dialog — branding home (spec §2: "80PWNER — by Anas Mahfouz (The 80)")."""
 from __future__ import annotations
 
 import importlib.util
@@ -15,7 +14,14 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from eightypwner.constants import APP_AUTHOR, APP_LICENSE, APP_NAME, APP_TAGLINE, APP_VERSION
+from eightypwner.constants import (
+    APP_AUTHOR,
+    APP_COPYRIGHT,
+    APP_LICENSE,
+    APP_NAME,
+    APP_TAGLINE,
+    APP_VERSION,
+)
 
 # Engines checked for the dependency panel; errors show install hints (spec §7).
 _ENGINE_DEPS: dict[str, str] = {
@@ -47,6 +53,7 @@ class AboutDialog(QDialog):
             f"<h1>{APP_NAME} {APP_VERSION}</h1>"
             f"<p><b>{APP_TAGLINE}</b></p>"
             f"<p>by <b>{APP_AUTHOR}</b></p>"
+            f"<p>{APP_COPYRIGHT}</p>"
         )
         heading.setTextFormat(Qt.TextFormat.RichText)
         heading.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -74,6 +81,6 @@ class AboutDialog(QDialog):
         return (
             "<p><b>Engine dependencies</b> (needed from Step 2 onwards):</p>"
             f"<table>{''.join(rows)}</table>"
-            f"<p>License: {APP_LICENSE}</p>"
+            f"<p>{APP_COPYRIGHT} — {APP_LICENSE} License</p>"
         )
 

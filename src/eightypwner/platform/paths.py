@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Config/log/session locations on Windows, macOS and Linux.
 
@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 try:
     from platformdirs import PlatformDirs
 
-    _dirs = PlatformDirs(appname="80pwner", appauthor="The80")
+    _dirs = PlatformDirs(appname="80pwner", appauthor="The 80")
 except ImportError:  # pragma: no cover — platformdirs is a hard dependency
     log.warning("platformdirs missing; falling back to ~/.80pwner")
     _dirs = None

@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 #
 """Central theme manager (spec §5): Dark / Light / Follow-system.
 

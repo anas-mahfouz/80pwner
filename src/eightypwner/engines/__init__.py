@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Engine wrappers (GDB/MI, Capstone, LIEF, gadgets) — placeholders for Steps 3-9.
 

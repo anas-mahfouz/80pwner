@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Stack Visualizer tests (Step 5): the widget reacts to the debugger's
 ``debugger_*`` bus events and renders the frame diagram the layout engine

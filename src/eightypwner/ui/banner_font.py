@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Bitmap block-letter font for the 80PWNER brand banner ("THE80-PWNER").
 

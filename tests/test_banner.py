@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Banner tests — bitmap block font (banner_font.py), asset, CLI fallback.
 
@@ -134,7 +134,7 @@ def test_version_banner_embeds_art():
     assert "=" not in VERSION_BANNER
     assert "█████" in VERSION_BANNER, "CLI art uses the display font"
     assert APP_BANNER in VERSION_BANNER
-    assert "Anas Mahfouz (The80)" in VERSION_BANNER
+    assert "Anas Mahfouz (The 80)" in VERSION_BANNER
 
 
 def test_terminal_banner_ascii_fallback(monkeypatch):

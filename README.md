@@ -10,7 +10,7 @@
   █   █   █ █████  ███   ███        █      █ █  █   █ █████ █   █
 ```
 
-**80PWNER — by Anas Mahfouz (The80)**
+**80PWNER — by Anas Mahfouz (The 80)**
 
 One desktop app instead of the scattered terminal workflow of CTF pwn (checksec,
 objdump, gdb+pwndbg, ROPgadget, cyclic patterns, notes). Open a binary once —
@@ -19,7 +19,7 @@ every module works on the same target and stays synchronized.
 > Educational + CTF use (pwn.college, picoCTF, HackTheBox, local labs).
 > Analyze and debug binaries you own or are authorized to test.
 
-## Features (build status: Step 6 of 10 ✅)
+## Features (build status: Step 10 of 10 ✅)
 
 - **Theme system** — Dark / Light / follow-system, persisted; red accent
   (#FF2D3D dark / #C8102E light); semantic colors stay separate so checksec
@@ -84,6 +84,50 @@ every module works on the same target and stays synchronized.
   stopped debugger, and a crash stop (SIGSEGV/SIGBUS/SIGILL/SIGFPE)
   automatically scans the register dump byte-windows and proposes the
   smallest matching offset
+- **Control Flow dock** — build an interactive basic-block CFG for any
+  discovered function (or a typed address): branch targets become leaders,
+  blocks split on every control-flow boundary, conditional/true/false,
+  jump and fallthrough edges are drawn with distinct colors, and clicking a
+  block shows its disassembly (and publishes the address to the rest of the
+  app). Live theme-aware rendering with pan/zoom/fit, per-build worklist
+  budgets (max blocks/instructions) with a truncation note instead of a
+  freeze, and one-click Graphviz DOT export
+- **Libc Helper** — fingerprint the exact `libc.so.6` (glibc version, arch,
+  bits, build-id, `/bin/sh` and `system()` offsets), searchable symbol table
+  with file-relative offsets, heuristic one-gadget scan (only candidates
+  whose constraints are verified by backtracking the register setup), base
+  computation from a `puts`/`printf`/… leak, and a ret2libc chain builder
+  that emits `p64` lines with automatic stack alignment. Publishes
+  `libc_loaded` / `libc_base_computed` so the Script Generator and any
+  third-party plugin stay in sync
+- **Heap Visualizer** — snapshot the live glibc heap through the debugger
+  (or parse a dump): walks the malloc chunk chain with `PREV_INUSE`
+  correction, highlights free vs in-use vs wilderness/top chunks, parses the
+  `tcache_perthread_struct` with both the modern (`uint16_t` counts) and
+  legacy (`char` counts) layouts, flags corrupt counts (> 7), malformed
+  sizes and duplicate tcache entries, and shows chunk addresses, sizes,
+  flags and state in a sortable table. Snapshots are read in 4 KiB MI chunks
+  so large heaps don't wedge GDB
+- **Script Generator** — turn the loaded binary into a runnable pwntools
+  exploit: skeleton, ret2win, ret2libc and shellcode templates; carries the
+  architecture, bits, checksec mitigations, interesting symbols, libc path,
+  one-gadget candidates, gadget addresses and the Pattern Tool crash offset
+  into the script; local/remote/gdb `start()` helper, `p64` chain layout and
+  stack alignment included; every rendered template is syntax-checked in the
+  test-suite
+- **Challenges (sessions + notes)** — per-binary SQLite library keyed by the
+  target's SHA-256: reuse the session on reopen, keep free-form notes with
+  debounced autosave, record findings (severity/title/address/detail) in a
+  sortable table, pull the latest Pattern Tool offset into a finding, and
+  export the whole writeup as Markdown or JSON
+- **Payload Studio** — assemble shellcode from curated presets or your own
+  asm (x86/x86-64/ARM/AArch64/MIPS/PPC/SPARC via Keystone), disassemble the
+  result with Capstone, check for bad bytes, format/copy the output as
+  Python/C/escaped/hex/base64, XOR-encode with a self-decoding x86-64 stub
+  and an auto-selected bad-byte-free key (the stub itself is NUL-free), and
+  plan format-string writes: paste `%p` output to find the argument offset,
+  then build the exact `%hn` payload and address table (plus the equivalent
+  `fmtstr_payload()` line)
 - Cross-platform: platformdirs paths (+ auto-migration from `~/.80pwner`),
   bundled JetBrains Mono (OFL), Fusion Qt style, high-DPI scaling
 
@@ -165,11 +209,11 @@ pytest                    # headless (offscreen Qt by default)
 4. ✅ GDB/MI integration + Debugger GUI
 5. ✅ Stack Visualizer
 6. ✅ Gadget Finder + Pattern Tool
-7. CFG + Libc helper
-8. Heap Visualizer
-9. Script Generator + Notes/Session Manager
-10. Packaging, tests, screenshots, polish
+7. ✅ CFG + Libc helper
+8. ✅ Heap Visualizer
+9. ✅ Script Generator + Notes/Session Manager
+10. ✅ Packaging, tests, polish (plus Payload Studio — shellcode/XOR/format-string workbench)
 
 ---
 
-*Made by The80* — Anas Mahfouz
+*Made by The 80* — Anas Mahfouz · © 2026

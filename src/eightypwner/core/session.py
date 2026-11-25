@@ -1,11 +1,12 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Per-challenge session state.
 
 The current session owns, at minimum, the active target so the main window and
 plugins agree on "the binary". Step 3 adds per-session annotations: comments
 attached to addresses and renamed symbols. These persist as JSON inside the
-platform session directory (full SQLite sessions arrive in Step 10).
+platform session directory; the full challenge library (notes, findings and
+exports) lives in :mod:`eightypwner.core.session_store` (SQLite).
 """
 
 from __future__ import annotations

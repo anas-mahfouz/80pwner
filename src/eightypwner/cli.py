@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Command-line entry point for 80PWNER."""
 
@@ -70,7 +70,7 @@ def main(argv: list[str] | None = None) -> int:
     # the Qt locale so all numerals stay ASCII in every widget.
     QLocale.setDefault(QLocale.c())
     app.setApplicationName("80PWNER")
-    app.setOrganizationName("The80")
+    app.setOrganizationName("The 80")
     from eightypwner.ui.fonts import load_bundled_fonts
 
     load_bundled_fonts()

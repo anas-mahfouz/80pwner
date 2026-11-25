@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """De Bruijn cyclic pattern generator/finder — pwntools-compatible.
 

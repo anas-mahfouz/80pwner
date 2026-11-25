@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """App icon/logo, generated in code (spec §2): stylized "80" in a rounded dark
 tile with a terminal caret — minimal hacker aesthetic, no skull."""

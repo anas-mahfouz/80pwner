@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Step-3 engine tests: disassembly, function discovery, xrefs, annotations."""
 

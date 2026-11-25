@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Brand constants for 80PWNER. Applied everywhere — window titles, dialogs, CLI."""
 
@@ -15,14 +15,15 @@ log = logging.getLogger(__name__)
 
 APP_NAME = "80PWNER"          # short brand (titles, status bar)
 APP_BANNER = "THE80-PWNER"    # full banner word (welcome, splash, About, CLI art)
-APP_AUTHOR = "Anas Mahfouz (The80)"
-APP_HANDLE = "The80"
+APP_AUTHOR = "Anas Mahfouz (The 80)"
+APP_HANDLE = "The 80"
+APP_COPYRIGHT = "Copyright © 2026 Anas Mahfouz (The 80)"
 APP_TAGLINE = "An Integrated GUI Pwn / Binary Analysis Workbench"
 APP_VERSION = "0.1.0"
 APP_LICENSE = "MIT"
 
 # Qt organisation/app names.
-ORG_NAME = "The80"
+ORG_NAME = "The 80"
 SETTINGS_APP = "80PWNER"
 
 # Banner split for two-tone rendering ("THE80" accent, "-PWNER" secondary).
@@ -104,9 +105,11 @@ VERSION_BANNER = f"""{ASCII_ART}
 
 {APP_BANNER} ({APP_NAME}) {APP_VERSION} — {APP_TAGLINE}
 by {APP_AUTHOR}
+{APP_COPYRIGHT}
+Released under the {APP_LICENSE} license.
 """
 
-FOOTER_TEXT = f"Made by {APP_HANDLE}"
+FOOTER_TEXT = f"Made by {APP_HANDLE}  ·  © 2026"
 
 
 def window_title(binary_name: str | None) -> str:

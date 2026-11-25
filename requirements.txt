@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 # Core (required, Step 1)
 PySide6>=6.6
 platformdirs>=4.0

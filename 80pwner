@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 80PWNER launcher (Linux/macOS) — by Anas Mahfouz (The80)
+# 80PWNER launcher (Linux/macOS) — by Anas Mahfouz (The 80)
 # Usage: ./80pwner [--version] [options]
 set -euo pipefail
 

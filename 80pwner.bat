@@ -1,4 +1,4 @@
-@rem 80PWNER launcher (Windows) — by Anas Mahfouz (The80)
+@rem 80PWNER launcher (Windows) — by Anas Mahfouz (The 80)
 @echo off
 setlocal
 set "DIR=%~dp0"

@@ -1,4 +1,4 @@
-/* 80PWNER — light theme (by Anas Mahfouz (The80)) — token-substituted QSS */
+/* 80PWNER — light theme (by Anas Mahfouz (The 80)) — token-substituted QSS */
 
 QMainWindow, QDialog {
     background: ${bg};

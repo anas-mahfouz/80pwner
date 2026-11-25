@@ -11,14 +11,14 @@ description = "80PWNER — An Integrated GUI Pwn / Binary Analysis Workbench"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
-authors = [{ name = "Anas Mahfouz (The80)" }]
+authors = [{ name = "Anas Mahfouz (The 80)" }]
 keywords = ["ctf", "pwn", "binary", "reverse-engineering", "gdb", "gui"]
 
 dependencies = [
     "PySide6>=6.6",
     "platformdirs>=4.0",
     # Engine backends are imported lazily; install the [analysis] extra for
-    # full functionality (Steps 2-9 of the delivery plan).
+    # full functionality (Steps 2-10 of the delivery plan).
 ]
 
 [project.optional-dependencies]

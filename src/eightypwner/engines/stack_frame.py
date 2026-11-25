@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Stack frame layout analysis (Step 5) — pure logic: no Qt, no processes.
 

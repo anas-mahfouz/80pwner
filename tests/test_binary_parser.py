@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 #
 """Parser engine tests on the sample binaries (with and without protections)."""
 

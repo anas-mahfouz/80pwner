@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 80PWNER sample builder — by Anas Mahfouz (The80)
+# 80PWNER sample builder — by Anas Mahfouz (The 80)
 # Compiles tests/samples/vulnerable.c into variants with different protections.
 # Usage: ./build_samples.sh [outdir]   (default: this directory)
 set -euo pipefail

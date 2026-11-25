@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """vaddr → file-offset mapping and byte reading for ELF/PE/Mach-O.
 

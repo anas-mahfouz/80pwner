@@ -1,4 +1,4 @@
-# 80PWNER PyInstaller entry point — by Anas Mahfouz (The80)
+# 80PWNER PyInstaller entry point — by Anas Mahfouz (The 80)
 
 """Entry script for PyInstaller bundles (see packaging/80pwner.spec)."""
 

@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Binary Overview module (spec §6.1): target metadata, checksec panel with
 colored badges, sections/segments/symbols/imports/exports/strings tables, and

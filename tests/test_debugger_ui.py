@@ -1,4 +1,4 @@
-# 80PWNER — by Anas Mahfouz (The80)
+# 80PWNER — by Anas Mahfouz (The 80)
 
 """Debugger GUI tests (offscreen): panels react to debugger_* bus events,
 run dialog/config flow, gdb-missing degradation, and a real gdb session flow
