@@ -116,6 +116,9 @@ def test_xor_stub_actually_decodes_and_runs():
     import ctypes
     import mmap
 
+    if not hasattr(mmap, "PROT_EXEC"):
+        pytest.skip("RWX mmap execution is POSIX-only")
+
     payload = assemble("mov eax, 0x1337\nret", "x86_64")
     encoded = encode_xor(payload, bad=b"\x00\x0a")
     region = mmap.mmap(

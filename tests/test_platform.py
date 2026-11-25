@@ -27,6 +27,8 @@ def test_legacy_migration_moves_and_does_not_clobber(tmp_path, monkeypatch):
     (legacy / "settings.json").write_text("{}", encoding="utf-8")
 
     monkeypatch.setenv("HOME", str(fake_home))  # legacy lookup uses Path.home()
+    # ntpath.expanduser() ignores HOME and reads USERPROFILE on Windows.
+    monkeypatch.setenv("USERPROFILE", str(fake_home))
     monkeypatch.setenv(paths.ENV_HOME, "")  # no override, no platformdirs clash
 
     target = paths.migrate_legacy_config()
@@ -42,5 +44,6 @@ def test_legacy_migration_moves_and_does_not_clobber(tmp_path, monkeypatch):
 @pytest.mark.skipif(not Path.home().exists(), reason="no HOME")
 def test_legacy_probe_handles_missing(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(tmp_path / "new-home"))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path / "new-home"))
     monkeypatch.setenv(paths.ENV_HOME, "")
     assert paths.legacy_config_dir() is None

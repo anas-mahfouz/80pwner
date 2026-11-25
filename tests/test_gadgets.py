@@ -9,6 +9,7 @@ for properties; fabricated blob models for byte-exact determinism.
 from __future__ import annotations
 
 import re
+import sys
 import time
 from pathlib import Path
 
@@ -264,8 +265,8 @@ def test_apply_query_combined(sample_gadgets: list[Gadget]) -> None:
 
 # ------------------------------------------------------------------ perf smoke
 def test_perf_smoke_bin_ls() -> None:
-    if not LS.is_file():
-        pytest.skip("/bin/ls not available on this machine")
+    if sys.platform != "linux" or not LS.is_file():
+        pytest.skip("Linux ELF binary required for gadget-scan smoke test")
     from eightypwner.engines.binary_parser import parse_binary
 
     model = parse_binary(LS)
@@ -279,8 +280,8 @@ def test_perf_smoke_bin_ls() -> None:
 
 
 def test_perf_smoke_cancellation_speed() -> None:
-    if not LS.is_file():
-        pytest.skip("/bin/ls not available on this machine")
+    if sys.platform != "linux" or not LS.is_file():
+        pytest.skip("Linux ELF binary required for gadget-scan smoke test")
     from eightypwner.engines.binary_parser import parse_binary
 
     model = parse_binary(LS)

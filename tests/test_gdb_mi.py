@@ -7,6 +7,7 @@ is missing) plus mocked error paths (gdb missing at boot, crashes, timeouts).
 from __future__ import annotations
 
 import shutil
+import sys
 import threading
 import time
 from collections import deque
@@ -37,8 +38,13 @@ SAMPLE_ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = SAMPLE_ROOT / "tests" / "samples" / "vuln_none.elf"
 GDB_PRESENT = shutil.which("gdb") is not None
 SAMPLE_PRESENT = SAMPLE.is_file()
+# The fixtures are Linux ELF binaries. A Windows runner ships a MinGW gdb that
+# cannot load them, so a live session only makes sense on Linux — gate on the
+# target format rather than on "a gdb binary exists somewhere on PATH".
+SAMPLE_IS_ELF = SAMPLE_PRESENT and SAMPLE.read_bytes()[:4] == b"\x7fELF"
+GDB_CAN_RUN_SAMPLE = GDB_PRESENT and SAMPLE_IS_ELF and sys.platform.startswith("linux")
 
-GDB_SKIP_REASON = "gdb is not installed on this machine"
+GDB_ELF_SKIP_REASON = "live gdb sessions need a Linux host and an ELF sample"
 
 
 def _wait(events: list[tuple[str, Any]], topic: str, timeout: float = 20.0, count: int = 1):
@@ -259,8 +265,7 @@ def _start_and_break(engine: GdbEngine, events: list, **start_kwargs) -> dict:
     return stops[-1]
 
 
-@pytest.mark.skipif(not GDB_PRESENT, reason=GDB_SKIP_REASON)
-@pytest.mark.skipif(not SAMPLE_PRESENT, reason="sample binary missing")
+@pytest.mark.skipif(not GDB_CAN_RUN_SAMPLE, reason=GDB_ELF_SKIP_REASON)
 class TestGdbIntegration:
     @pytest.fixture()
     def engine(self):

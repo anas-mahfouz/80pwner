@@ -81,6 +81,8 @@ ARCHES: tuple[str, ...] = tuple(ARCH_TABLE) or ("x86_64",)
 
 def _spec(arch: str, big_endian: bool = False) -> tuple[int, int, int, int, int]:
     key = arch.lower()
+    if not ARCH_TABLE:
+        raise _engine_error("keystone-engine" if not _HAS_KEYSTONE else "capstone")
     if key not in ARCH_TABLE:
         raise ShellcodeError(
             f"Unsupported architecture {arch!r} — choose from {', '.join(ARCHES)}."
@@ -95,10 +97,30 @@ def _spec(arch: str, big_endian: bool = False) -> tuple[int, int, int, int, int]
     return ks_arch, ks_mode, ca_arch, ca_mode, bits
 
 
+def _engine_error(name: str) -> ShellcodeError:
+    """Actionable error when a native engine is present but unusable.
+
+    On macOS arm64 the published keystone-engine wheel is a stub without the
+    native library, so ``pip install keystone-engine`` succeeds while the
+    import (and every assembly call) fails. Say that plainly instead of
+    claiming the package is missing.
+    """
+    return ShellcodeError(
+        f"{name} is unavailable: the Python package is installed but its native "
+        "library did not load (macOS arm64 ships a stub keystone wheel) — "
+        "this feature is disabled on this platform"
+    )
+
+
+def assembler_available() -> bool:
+    """True when both native engines loaded, so assembly/disassembly work."""
+    return bool(ARCH_TABLE)
+
+
 def assemble(code: str, arch: str = "x86_64", big_endian: bool = False) -> bytes:
     """Assemble *code* (Intel/AT&T per architecture) into raw bytes."""
     if not _HAS_KEYSTONE:
-        raise ShellcodeError("keystone-engine is not installed — pip install keystone-engine")
+        raise _engine_error("keystone-engine")
     ks_arch, ks_mode, _ca, _cm, _bits = _spec(arch, big_endian)
     try:
         engine = keystone.Ks(ks_arch, ks_mode)
@@ -125,7 +147,7 @@ def disassemble(
 ) -> list[DisasmRow]:
     """Capstone disassembly rows for raw bytes."""
     if not _HAS_CAPSTONE:
-        raise ShellcodeError("capstone is not installed — pip install capstone")
+        raise _engine_error("capstone")
     _ks_arch, _ks_mode, ca_arch, ca_mode, _bits = _spec(arch, big_endian)
     engine = capstone.Cs(ca_arch, ca_mode)
     rows: list[DisasmRow] = []

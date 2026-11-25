@@ -18,6 +18,7 @@ Layers covered:
 from __future__ import annotations
 
 import shutil
+import sys
 import time
 from pathlib import Path
 from types import SimpleNamespace
@@ -57,7 +58,11 @@ SAMPLE = SAMPLE_ROOT / "tests" / "samples" / "vuln_none.elf"
 DOCS = SAMPLE_ROOT / "docs"
 
 GDB_PRESENT = shutil.which("gdb") is not None
-GDB_SKIP_REASON = "gdb is not installed on this machine"
+# vuln_none.elf is a Linux ELF; a Windows MinGW gdb refuses to load it.
+GDB_CAN_RUN_SAMPLE = (
+    GDB_PRESENT and SAMPLE.is_file() and sys.platform.startswith("linux")
+)
+GDB_ELF_SKIP_REASON = "live gdb sessions need a Linux host and an ELF sample"
 
 
 def wait_events(
@@ -550,8 +555,7 @@ def test_docs_screenshots_dark_and_light(plugin):
 
 
 # --------------------------------------------------- real gdb integration
-@pytest.mark.skipif(not GDB_PRESENT, reason=GDB_SKIP_REASON)
-@pytest.mark.skipif(not SAMPLE.is_file(), reason="sample binary missing")
+@pytest.mark.skipif(not GDB_CAN_RUN_SAMPLE, reason=GDB_ELF_SKIP_REASON)
 class TestRealGdbFrame:
     """End-to-end: gdb stops inside vuln_none.elf's buf frame at gets()."""
 
@@ -567,6 +571,7 @@ class TestRealGdbFrame:
         )
 
         events: list[tuple[str, Any]] = []
+        plugin = None
         engine = GdbEngine(lambda topic, payload: events.append((topic, payload)))
         try:
             stdin_file = tmp_path / "in.txt"
@@ -613,6 +618,7 @@ class TestRealGdbFrame:
             buf_to_ra = next(d for name, d in listed if "return address" in name)
             assert buf_to_ra == 0x48
         finally:
-            plugin._closing = True
-            plugin._wake.set()
+            if plugin is not None:
+                plugin._closing = True
+                plugin._wake.set()
             engine.shutdown()

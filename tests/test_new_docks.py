@@ -18,6 +18,7 @@ from eightypwner.core.event_bus import EventBus
 from eightypwner.core.settings import Settings
 from eightypwner.engines.binary_parser import parse_binary
 from eightypwner.engines.heap import chunk_rows
+from eightypwner.engines.shellcode import assembler_available
 from eightypwner.modules.builtin.cfg_view import CfgPlugin
 from eightypwner.modules.builtin.heap_visualizer import HeapPlugin
 from eightypwner.modules.builtin.libc_helper import LibcHelperPlugin
@@ -28,6 +29,14 @@ from eightypwner.modules.interface import PluginContext
 
 SAMPLES = Path(__file__).parent / "samples"
 NONE = SAMPLES / "vuln_none.elf"
+
+# Keystone ships no usable native library for macOS arm64 (the sdist builds an
+# empty wheel), so Payload Studio can only assemble where keystone + capstone
+# both import successfully.
+requires_assembler = pytest.mark.skipif(
+    not assembler_available(),
+    reason="keystone/capstone unavailable on this platform",
+)
 
 
 @pytest.fixture
@@ -209,12 +218,13 @@ def test_script_dock_consumes_libc_and_pattern_events(qtbot, ctx, model, tmp_pat
     _dock(qtbot, plugin, ctx)
     try:
         plugin.on_event("binary_loaded", {"model": model})
+        fake_libc = _FakeLibc()
         plugin.on_event(
             "libc_loaded",
-            {"path": "/tmp/libc.so.6", "info": _FakeLibc()},
+            {"path": str(fake_libc.path), "info": fake_libc},
         )
-        assert plugin._ctx.libc_path == "/tmp/libc.so.6"
-        assert plugin._libc_path.text() == "/tmp/libc.so.6"
+        assert plugin._ctx.libc_path == str(fake_libc.path)
+        assert plugin._libc_path.text() == str(fake_libc.path)
         plugin.on_event("pattern_lookup_result", {"offset": 40, "n": 8})
         assert plugin._ctx.crash_offset == 40
         assert plugin._offset.text() == "40"
@@ -285,6 +295,7 @@ def test_session_dock_tracks_pattern_offset(qtbot, ctx):
 
 
 # -------------------------------------------------------------- payload studio
+@requires_assembler
 def test_payload_studio_assembles(qtbot, ctx):
     plugin = PayloadStudioPlugin(ctx)
     _dock(qtbot, plugin, ctx)
@@ -305,6 +316,7 @@ def test_payload_studio_assembles(qtbot, ctx):
         plugin.shutdown()
 
 
+@requires_assembler
 def test_payload_studio_encodes(qtbot, ctx):
     plugin = PayloadStudioPlugin(ctx)
     _dock(qtbot, plugin, ctx)

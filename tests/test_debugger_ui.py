@@ -8,6 +8,7 @@ run dialog/config flow, gdb-missing degradation, and a real gdb session flow
 from __future__ import annotations
 
 import shutil
+import sys
 import time
 from pathlib import Path
 
@@ -29,6 +30,11 @@ from eightypwner.modules.interface import PluginContext
 SAMPLE_ROOT = Path(__file__).resolve().parents[1]
 SAMPLE = SAMPLE_ROOT / "tests" / "samples" / "vuln_none.elf"
 GDB_PRESENT = shutil.which("gdb") is not None
+# The sample is a Linux ELF; MinGW gdb on the Windows runners cannot load it.
+GDB_CAN_RUN_SAMPLE = (
+    GDB_PRESENT and SAMPLE.is_file() and sys.platform.startswith("linux")
+)
+GDB_ELF_SKIP_REASON = "live gdb sessions need a Linux host and an ELF sample"
 
 
 class _UnavailStatus:
@@ -224,7 +230,7 @@ def test_debugger_unavailable_degrades(plugin, qtbot, monkeypatch):
     ctx.bus.subscribe(DBG_UNAVAILABLE, lambda topic, payload: got_unavailable.append(payload))
     # engine construction fails → message + disabled panels, bus event fired
     plugin._ensure_engine()
-    qtbot.waitUntil(lambda: got_unavailable)
+    qtbot.waitUntil(lambda: bool(got_unavailable))
     assert "gdb" in plugin._status.text().lower()
     assert not plugin._console_input.isEnabled()
 
@@ -238,8 +244,7 @@ def test_gdb_died_sets_warning(plugin, qtbot):
 
 
 # ------------------------------------------------------------- real gdb flow
-@pytest.mark.skipif(not GDB_PRESENT, reason="gdb is not installed on this machine")
-@pytest.mark.skipif(not SAMPLE.is_file(), reason="sample binary missing")
+@pytest.mark.skipif(not GDB_CAN_RUN_SAMPLE, reason=GDB_ELF_SKIP_REASON)
 def test_full_gdb_ui_flow(qtbot, plugin, tmp_path, monkeypatch):
     """start_session → breakpoint hit → step → registers panels → stop."""
 

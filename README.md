@@ -246,6 +246,11 @@ imported by the app — install the `pwntools`/`all` extra only if you want to
 run the exploits the Script Generator writes. The About dialog shows what's
 present with install hints per missing tool.
 
+> **macOS Apple Silicon:** the published `keystone-engine` 0.9.2 wheel is a
+> stub without the native library, so Payload Studio reports the assembler as
+> unavailable instead of failing silently. Everything else in the `analysis`
+> extra works. On Intel macOS and on Linux/Windows assembly is available.
+
 ## Development
 
 ```bash
